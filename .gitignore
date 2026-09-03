@@ -1,0 +1,7 @@
+.env
+.venv/
+venv/
+__pycache__/
+.DS_Store
+ran_notes_assets/
+ran_notes_library.sqlite3

@@ -1,0 +1,3329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>研行记 (RAN) - 交互演示</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-light: #eff6ff;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --border: #e2e8f0;
+            --bg-app: #f8fafc;
+            --white: #ffffff;
+            --col-left: 280px;
+            --col-right: 320px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header */
+        header {
+            height: 60px;
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            flex-shrink: 0;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-sub);
+        }
+        
+        .btn-ghost:hover {
+            background: var(--bg-app);
+            color: var(--text-main);
+        }
+        .btn:disabled {
+            opacity: 0.48;
+            cursor: not-allowed;
+            box-shadow: none;
+            filter: grayscale(0.18);
+        }
+        .library-modal { display:none; position:fixed; inset:0; z-index:500; background:rgba(15,23,42,.38); padding:5vh 6vw; }
+        .library-modal.open { display:block; }
+        .library-panel { height:90vh; overflow:auto; background:#fff; border-radius:1rem; box-shadow:0 24px 70px rgba(15,23,42,.25); padding:1.2rem; }
+        .library-grid { display:grid; grid-template-columns:1.1fr 1fr; gap:1rem; margin-top:1rem; }
+        .library-card { border:1px solid #e2e8f0; border-radius:.75rem; padding:.8rem; background:#fff; }
+        .heatmap { display:grid; grid-template-columns:repeat(14,1fr); gap:4px; margin-top:.6rem; }
+        .heat-cell { aspect-ratio:1; border-radius:3px; background:#eef2f7; }
+        .heat-cell[data-count="1"] { background:#bfdbfe; } .heat-cell[data-count="2"] { background:#60a5fa; } .heat-cell[data-count="3"] { background:#2563eb; } .heat-cell[data-count="4"] { background:#1d4ed8; }
+        .library-row { padding:.55rem 0; border-bottom:1px solid #eef2f7; font-size:.78rem; line-height:1.45; }
+        .library-row:last-child { border-bottom:0; }
+        #continueUploadBtn {
+            display: none;
+        }
+        body.generated-mode #continueUploadBtn {
+            display: inline-flex;
+        }
+        #regenerateBar {
+            display: none;
+            padding: 0.5rem 0 0.75rem;
+        }
+        body.generated-mode #regenerateBar {
+            display: block;
+        }
+        #regenerateBar .btn {
+            padding: 0.4rem 0.9rem;
+            font-size: 0.875rem;
+        }
+
+        /* Main Layout */
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: var(--col-left, 280px) 4px minmax(0, 1fr) 4px var(--col-right, 320px);
+            overflow: hidden;
+        }
+        body.input-mode main {
+            grid-template-columns: minmax(420px, 1fr) 0 0 8px minmax(420px, 1fr);
+            background: linear-gradient(180deg, #f5f7fb 0%, #f8fafc 100%);
+            padding: 1.1rem;
+            align-items: start;
+        }
+        body.input-mode #resizerLeft,
+        body.input-mode .editor-area,
+        body.input-mode #recordContent,
+        body.input-mode #editorToolbar,
+        body.input-mode #sourcePreviewPanel {
+            display: none !important;
+        }
+        body.input-mode #exportMenuBtn {
+            display: none;
+        }
+        body.input-mode .col-resizer {
+            background: transparent;
+            cursor: default;
+            width: 8px;
+        }
+        body.input-mode .sidebar-left,
+        body.input-mode .sidebar-right {
+            background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+            border: 1px solid #e6ebf3;
+            border-radius: 1rem;
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+            padding: 1.15rem 1.1rem;
+            margin: 0;
+            transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+            height: auto;
+            max-height: calc(100vh - 96px);
+        }
+        body.input-mode .sidebar-left:hover,
+        body.input-mode .sidebar-right:hover {
+            transform: translateY(-2px) scale(1.005);
+            box-shadow: 0 16px 34px rgba(15, 23, 42, 0.1);
+            border-color: #d7e3f8;
+        }
+        body.input-mode .sidebar-left {
+            overflow-y: auto;
+        }
+        body.input-mode .sidebar-right {
+            display: block;
+            overflow-y: auto;
+            border-left: 1px solid #e6ebf3;
+            padding: 1.15rem 1.1rem;
+        }
+        body.input-mode .editor-area {
+            overflow: visible;
+        }
+        body.input-mode .paper {
+            max-width: none;
+            margin: 0;
+            overflow: visible;
+        }
+        body.input-mode .section-title {
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            color: #64748b;
+            margin-bottom: 0.65rem;
+        }
+        .input-step-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 0.9rem;
+            letter-spacing: 0;
+            text-transform: none;
+        }
+        .prep-step {
+            margin-top: 0.95rem;
+            padding: 0.8rem;
+            border: 1px solid #dbe3ef;
+            border-radius: 0.8rem;
+            background: #fff;
+        }
+        .prep-step:first-of-type { margin-top: 0; }
+        .prep-kicker {
+            font-size: 0.7rem;
+            color: #2563eb;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+        .prep-label { display: block; font-size: 0.78rem; font-weight: 650; color: #0f172a; margin: 0.45rem 0 0.28rem; }
+        .prep-help { font-size: 0.71rem; color: #64748b; line-height: 1.5; margin: 0.2rem 0 0.55rem; }
+        .prep-textarea { width: 100%; box-sizing: border-box; min-height: 104px; padding: 0.55rem; resize: vertical; font-size: 0.78rem; line-height: 1.5; border: 1px solid #dbe3ef; border-radius: 0.55rem; }
+        .prep-textarea:focus { outline: none; border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+        #preparedTranscriptWrap { display: none; margin-top: 0.7rem; }
+        #preparedTranscriptWrap.visible { display: block; }
+        .prep-status { min-height: 1.2rem; margin-top: 0.5rem; color: #64748b; font-size: 0.72rem; line-height: 1.45; }
+        .prep-status.ready { color: #047857; }
+        .transcript-progress { display:none; margin-top:.55rem; padding:.55rem .65rem; border:1px solid #dbeafe; border-radius:.55rem; background:#f8fbff; }
+        .transcript-progress.active, .transcript-progress.complete, .transcript-progress.failed { display:block; }
+        .transcript-progress-head { display:flex; justify-content:space-between; gap:.6rem; font-size:.7rem; color:#1d4ed8; }
+        .transcript-progress.failed .transcript-progress-head { color:#b91c1c; }
+        .transcript-progress-track { height:5px; overflow:hidden; margin-top:.4rem; border-radius:999px; background:#dbeafe; }
+        .transcript-progress-bar { width:0; height:100%; border-radius:inherit; background:linear-gradient(90deg,#2563eb,#38bdf8); transition:width .45s ease; }
+        .transcript-progress.waiting .transcript-progress-bar { width:38%; animation: transcript-waiting 1.35s ease-in-out infinite alternate; }
+        @keyframes transcript-waiting { from { transform:translateX(-85%); } to { transform:translateX(220%); } }
+        .transcript-progress.failed .transcript-progress-bar { background:#ef4444; }
+        .upload-area.is-locked { opacity: 0.48 !important; cursor: not-allowed !important; filter: grayscale(0.2); }
+        #assetLead {
+            display: none;
+        }
+        body.input-mode #assetLead {
+            display: block;
+            margin-bottom: 0.9rem;
+            padding: 0.75rem 0.8rem;
+            border-radius: 0.7rem;
+            border: 1px solid #dbeafe;
+            background: linear-gradient(180deg, #ffffff 0%, #f6faff 100%);
+            box-shadow: 0 6px 20px rgba(30, 64, 175, 0.08);
+            font-size: 0.78rem;
+            color: #334155;
+            line-height: 1.55;
+        }
+        body.input-mode .upload-area {
+            border: 1px solid #dbe3ef;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            border-radius: 0.9rem;
+            padding: 2.1rem 1rem;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+            margin-bottom: 1rem;
+            transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+        }
+        body.input-mode .upload-area:hover {
+            border-color: #93c5fd;
+            background: linear-gradient(180deg, #ffffff 0%, #edf5ff 100%);
+            transform: translateY(-1px) scale(1.01);
+            box-shadow: 0 14px 30px rgba(37, 99, 235, 0.12);
+        }
+        body.input-mode #transcriptInput {
+            height: 120px !important;
+            border-radius: 0.75rem !important;
+            border: 1px solid #dbe3ef !important;
+            background: #ffffff;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+        }
+        body.input-mode .file-list {
+            margin-top: 0.85rem;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 0.2rem;
+        }
+        body.input-mode .file-item {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.72rem;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        }
+        #inputHero { display: none; }
+        body.input-mode #inputHero { display: none !important; }
+        body.input-mode #meetingBasicInfo {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            max-width: none;
+            margin: 0;
+            padding: 0.1rem 0.05rem !important;
+            overflow: visible !important;
+        }
+        body.input-mode #meetingBasicInfo .input-step-title {
+            font-size: 1.05rem !important;
+            font-weight: 700 !important;
+            color: #0f172a !important;
+            margin-bottom: 0.9rem !important;
+            line-height: 1.35;
+        }
+        body.input-mode #meetingBasicInfo input,
+        body.input-mode #meetingBasicInfo select {
+            border-radius: 0.6rem !important;
+            border-color: #dbe3ef !important;
+            background: linear-gradient(180deg, #ffffff 0%, #fdfefe 100%) !important;
+            transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+        }
+        body.input-mode #meetingBasicInfo input:hover,
+        body.input-mode #meetingBasicInfo select:hover {
+            border-color: #bfdbfe !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08);
+            transform: translateY(-1px);
+        }
+        body.generated-mode #inputHero {
+            display: none !important;
+        }
+        body.generated-mode main {
+            grid-template-columns: 0 0 minmax(0, 1fr) 4px var(--col-right, 340px);
+        }
+        body.generated-mode .sidebar-left,
+        body.generated-mode #resizerLeft,
+        body.generated-mode #meetingBasicInfo,
+        body.generated-mode #materialsPreparationSlot {
+            display: none !important;
+        }
+        body.generated-mode .editor-area {
+            background: linear-gradient(180deg, #f5f7fb 0%, #f8fafc 100%);
+            padding: 1.2rem 1.25rem 1.35rem;
+        }
+        body.generated-mode .paper {
+            max-width: 920px;
+            margin: 0 auto;
+            background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+            border: 1px solid #e6ebf3;
+            border-radius: 1rem;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+            padding: 1.15rem 1.15rem 1.05rem;
+        }
+        body.generated-mode .record-header {
+            margin-bottom: 1.5rem;
+            padding: 1.25rem 1.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid #e6ebf3;
+            background: linear-gradient(180deg, #fafbff 0%, #ffffff 100%);
+        }
+        body.generated-mode .record-meta {
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-main);
+        }
+        body.generated-mode .content-block {
+            margin-bottom: 1rem;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            border: 1px solid #e6ebf3;
+            border-radius: 0.85rem;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+            padding: 0.85rem 0.9rem;
+            transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+        }
+        body.generated-mode .content-block:hover {
+            transform: translateY(-1px) scale(1.003);
+            border-color: #d6e4fb;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+        }
+        body.generated-mode .content-block.section-heading-block {
+            margin-bottom: 0;
+            padding-bottom: 0.45rem;
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            box-shadow: none;
+        }
+        body.generated-mode .content-block.section-heading-block + .content-block {
+            margin-top: 0;
+            border-top-left-radius: 0;
+            border-top-right-radius: 0;
+            border-top-color: transparent;
+        }
+        body.generated-mode .block-title {
+            font-size: 1.02rem;
+            margin-bottom: 0.75rem;
+            color: #0f172a;
+        }
+        body.generated-mode .action-item {
+            background: linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%);
+            border-left: 4px solid #3b82f6;
+            border-radius: 0.72rem;
+            border: 1px solid #dbeafe;
+            box-shadow: none;
+        }
+        body.generated-mode .sidebar-right {
+            background: linear-gradient(180deg, #f5f7fb 0%, #f8fafc 100%);
+            border-left: none;
+            padding: 1.2rem 1rem 1.2rem 0.85rem;
+        }
+        body.generated-mode .preview-card {
+            border: 1px solid #e6ebf3;
+            border-radius: 1rem;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+            background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+        }
+        body.generated-mode .preview-header {
+            background: transparent;
+            border-bottom: 1px solid #e6ebf3;
+        }
+        body.generated-mode .preview-content {
+            background: #ffffff;
+        }
+
+        .col-resizer {
+            background: rgba(148, 163, 184, 0.6);
+            cursor: col-resize;
+            width: 4px;
+        }
+
+        .col-resizer:hover {
+            background: rgba(59, 130, 246, 0.8);
+        }
+
+        /* Left Sidebar: Assets */
+        .sidebar-left {
+            grid-column: 1 / 2;
+            background: var(--white);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-sub);
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 0.5rem;
+            padding: 2rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 1.5rem;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+        }
+
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--bg-app);
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+            font-size: 0.875rem;
+        }
+
+        .file-icon {
+            font-size: 1.25rem;
+        }
+
+        /* Center: Editor */
+        .editor-area {
+            grid-column: 3 / 4;
+            padding: 2rem;
+            overflow-y: auto;
+            background: var(--white);
+            position: relative;
+        }
+
+        .paper {
+            max-width: 800px;
+            margin: 0 auto;
+            min-height: 100%;
+        }
+        /* contenteditable 默认会有黑色焦点外框（很难看），统一去掉 */
+        #generatedRecord,
+        #paperContent[contenteditable="true"] {
+            outline: none;
+        }
+        #generatedRecord:focus,
+        #paperContent[contenteditable="true"]:focus {
+            outline: none;
+        }
+
+        .record-header {
+            margin-bottom: 2rem;
+            padding: 1.25rem 1.5rem;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+            background: linear-gradient(180deg, #fafbff 0%, #ffffff 100%);
+        }
+
+        .record-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            color: var(--text-main);
+            font-size: 0.875rem;
+            margin-top: 0.75rem;
+        }
+        .record-meta .meta-row {
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+        }
+        .record-meta .meta-label {
+            color: var(--text-sub);
+            font-size: 0.8rem;
+            min-width: 4em;
+        }
+
+        .content-block {
+            margin-bottom: 2rem;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.5s, transform 0.5s;
+        }
+
+        .content-block.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .block-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .block-title::before {
+            content: "";
+            display: block;
+            width: 4px;
+            height: 1.2rem;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
+        .action-item {
+            background: var(--primary-light);
+            border-left: 4px solid var(--primary);
+            padding: 1rem;
+            border-radius: 0 0.5rem 0.5rem 0;
+            margin-bottom: 0.75rem;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+
+        .tag-red { background: #fee2e2; color: #991b1b; }
+        .tag-yellow { background: #fef3c7; color: #92400e; }
+
+        .ref-link {
+            color: var(--primary);
+            font-size: 0.75rem;
+            cursor: pointer;
+            margin-left: 0.5rem;
+            font-weight: 500;
+            text-decoration: none;
+            background: rgba(37, 99, 235, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .ref-link:hover {
+            background: rgba(37, 99, 235, 0.2);
+        }
+
+        /* Right: Preview */
+        .sidebar-right {
+            grid-column: 5 / 6;
+            background: var(--bg-app);
+            border-left: 1px solid var(--border);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .preview-card {
+            background: var(--white);
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid var(--border);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-header {
+            padding: 0.75rem;
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .preview-content {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #e2e8f0;
+            color: var(--text-sub);
+            font-size: 0.875rem;
+            position: relative;
+            overflow-y: auto;
+        }
+
+        .preview-content.preview-content-scroll {
+            align-items: flex-start;
+            justify-content: flex-start;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loading-overlay {
+            /* 生成状态不能依赖中间编辑区的高度；它必须始终在当前视口可见。 */
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.36);
+            backdrop-filter: blur(2px);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 1rem;
+        }
+
+        .loading-card {
+            width: min(440px, 94vw);
+            box-sizing: border-box;
+            padding: 1.55rem 1.45rem 1.35rem;
+            background: #fff;
+            border-radius: 1rem;
+            box-shadow: 0 24px 65px rgba(15, 23, 42, 0.28);
+            text-align: center;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+        .generation-progress { width: 100%; margin-top: .85rem; }
+        .generation-progress-head { display:flex; justify-content:space-between; gap:.75rem; font-size:.72rem; color:#64748b; margin-bottom:.36rem; }
+        .generation-progress-track { height:8px; overflow:hidden; border-radius:999px; background:#e2e8f0; }
+        .generation-progress-bar { width:0%; height:100%; border-radius:inherit; background:linear-gradient(90deg,#2563eb,#60a5fa); transition:width .35s ease; }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .typing-text::after {
+            content: '|';
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .source-highlight {
+            background: #93c5fd;
+            color: #1e3a8a;
+            border-radius: 0.25rem;
+            padding: 0.15rem 0.25rem;
+            font-weight: 500;
+        }
+        .source-block-body {
+            max-height: 420px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 0.5rem 0;
+        }
+        .btn-trace {
+            font-size: 0.7rem;
+            padding: 0.15rem 0.4rem;
+            border-radius: 999px;
+            border: 1px solid var(--primary);
+            background: #eff6ff;
+            color: var(--primary);
+            cursor: pointer;
+        }
+        .btn-trace:hover {
+            background: #dbeafe;
+        }
+        .trace-target {
+            border-radius: 0.5rem;
+            transition: background-color 0.16s ease, box-shadow 0.16s ease;
+        }
+        .trace-target:hover {
+            background: #f8fbff;
+            box-shadow: inset 0 0 0 1px #bfdbfe;
+            cursor: pointer;
+        }
+        .trace-target.trace-active {
+            background: #eff6ff;
+            box-shadow: inset 0 0 0 1.5px #60a5fa;
+        }
+        .source-block {
+            margin-bottom: 1.25rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .source-block:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .source-block-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .ppt-slide-card {
+            background: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+            border: 1px solid #e2e8f0;
+            padding: 0.75rem 0.9rem;
+            margin-bottom: 1rem;
+            flex-shrink: 0;
+        }
+
+        .ppt-slide-card.ppt-slide-card-target {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+        }
+
+        .ppt-slide-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 0.5rem;
+        }
+
+        .ppt-slide-body {
+            font-size: 0.8rem;
+            color: #0f172a;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        /* 整页幻灯片样式：像第三张图那样以图为主 */
+        .ppt-slide-card.ppt-slide-card-fullpage {
+            padding: 0.5rem 0;
+            overflow: hidden;
+        }
+
+        .ppt-slide-card-fullpage .ppt-slide-title {
+            margin-bottom: 0.35rem;
+            padding: 0 0.25rem;
+        }
+
+        .ppt-slide-card-fullpage .ppt-slide-body {
+            padding: 0;
+            line-height: 0;
+        }
+
+        .ppt-slide-card-fullpage .ppt-slide-body img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 0.5rem;
+            background: #1e293b;
+        }
+
+        .ppt-slide-card-fullpage .ppt-slide-body .ppt-slide-text-only {
+            font-size: 0.75rem;
+            color: #64748b;
+            white-space: pre-wrap;
+            line-height: 1.5;
+            padding: 0.5rem 0.25rem 0 0;
+        }
+
+        .ppt-slide-hint {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            margin-top: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            background: #f1f5f9;
+            border-radius: 0.25rem;
+        }
+
+        .pdf-page-card {
+            background: #ffffff;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+            border: 1px solid #e2e8f0;
+            padding: 0.75rem 0.9rem;
+            margin-bottom: 1rem;
+            flex-shrink: 0;
+        }
+        .pdf-page-card.pdf-page-card-target {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+        }
+        .pdf-page-card-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 0.5rem;
+        }
+        .pdf-page-card-body {
+            font-size: 0.8rem;
+            color: #0f172a;
+            white-space: pre-wrap;
+            line-height: 1.7;
+        }
+        .pdf-page-card-body img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
+            background: #f1f5f9;
+        }
+        /* 与 PPT 一致：有图时整页图为主，下方为文字 */
+        .pdf-page-card.pdf-page-card-fullpage {
+            padding: 0.5rem 0;
+            overflow: hidden;
+        }
+        .pdf-page-card-fullpage .pdf-page-card-title {
+            margin-bottom: 0.35rem;
+            padding: 0 0.25rem;
+        }
+        .pdf-page-card-fullpage .pdf-page-card-body {
+            padding: 0;
+            line-height: 0;
+        }
+        .pdf-page-card-fullpage .pdf-page-card-body img {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 0.5rem;
+            background: #1e293b;
+            margin-bottom: 0;
+        }
+        .pdf-page-card-fullpage .pdf-page-card-body .pdf-page-text-only {
+            font-size: 0.75rem;
+            color: #64748b;
+            white-space: pre-wrap;
+            line-height: 1.5;
+            padding: 0.5rem 0.25rem 0 0;
+        }
+        .pdf-page-hint {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            margin-top: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            background: #f1f5f9;
+            border-radius: 0.25rem;
+        }
+
+        .export-menu {
+            position: absolute;
+            top: 110%;
+            right: 0;
+            background: #ffffff;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);
+            padding: 0.25rem 0;
+            font-size: 0.8rem;
+            min-width: 140px;
+            z-index: 20;
+            display: none;
+        }
+
+        .export-menu-item {
+            padding: 0.4rem 0.75rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .export-menu-item:hover {
+            background: #f1f5f9;
+        }
+
+        /* 编辑工具栏：类似 Word */
+        .editor-toolbar-wrap {
+            display: none;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.5rem 0.75rem;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .editor-toolbar-wrap.visible {
+            display: flex;
+        }
+
+        .editor-toolbar-divider {
+            width: 1px;
+            height: 1.5rem;
+            background: var(--border);
+            margin: 0 0.25rem;
+        }
+
+        .editor-toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 0.15rem;
+        }
+
+        .editor-toolbar-btn {
+            min-width: 28px;
+            height: 28px;
+            padding: 0 0.4rem;
+            border: none;
+            border-radius: 0.25rem;
+            background: transparent;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: var(--text-main);
+        }
+
+        .editor-toolbar-btn:hover {
+            background: var(--bg-app);
+        }
+
+        .editor-toolbar-btn.active {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .editor-toolbar-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .editor-toolbar-select {
+            height: 28px;
+            padding: 0 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 0.25rem;
+            font-size: 0.8rem;
+            background: #fff;
+            color: var(--text-main);
+            min-width: 90px;
+        }
+
+        .editor-toolbar-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .toast-save {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 0.5rem 1rem;
+            background: #0f172a;
+            color: #fff;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .toast-save.show {
+            opacity: 1;
+        }
+
+        /* ── Date Picker ── */
+        .dp-popup {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            z-index: 200;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 0.625rem;
+            box-shadow: 0 8px 28px rgba(15,23,42,0.13);
+            padding: 0.875rem;
+            width: 244px;
+            user-select: none;
+        }
+        .dp-popup.open { display: block; }
+        .dp-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.625rem; }
+        .dp-nav { background: none; border: none; cursor: pointer; width: 28px; height: 28px;
+                  border-radius: 50%; font-size: 0.9rem; color: var(--text-sub);
+                  display: flex; align-items: center; justify-content: center; }
+        .dp-nav:hover { background: var(--bg-app); color: var(--text-main); }
+        .dp-title { font-size: 0.875rem; font-weight: 600; cursor: default; }
+        .dp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 0.25rem; }
+        .dp-weekday { text-align: center; font-size: 0.68rem; color: var(--text-sub); font-weight: 600; padding: 0.15rem 0; }
+        .dp-day { width: 100%; aspect-ratio: 1; border: none; background: none; cursor: pointer;
+                  border-radius: 50%; font-size: 0.78rem; color: var(--text-main);
+                  display: flex; align-items: center; justify-content: center; }
+        .dp-day:hover:not(:disabled):not(.empty) { background: var(--primary-light); color: var(--primary); }
+        .dp-day.selected { background: var(--primary); color: #fff; font-weight: 600; }
+        .dp-day.today:not(.selected) { font-weight: 700; color: var(--primary); }
+        .dp-day.other-month { color: #cbd5e1; }
+        .dp-day.empty { cursor: default; }
+        .dp-time-row { display: flex; align-items: center; gap: 0.5rem;
+                       margin-top: 0.625rem; padding-top: 0.625rem; border-top: 1px solid var(--border); }
+        .dp-time-label { font-size: 0.75rem; color: var(--text-sub); flex-shrink: 0; }
+        .dp-spin { display: flex; align-items: center; gap: 0.2rem; }
+        .dp-spin-btn { background: none; border: 1px solid var(--border); border-radius: 0.25rem;
+                       width: 20px; height: 20px; cursor: pointer; font-size: 0.65rem; color: var(--text-sub);
+                       display: flex; align-items: center; justify-content: center; }
+        .dp-spin-btn:hover { background: var(--bg-app); color: var(--text-main); }
+        .dp-spin-val { width: 28px; text-align: center; font-size: 0.85rem; font-weight: 600;
+                       border: 1px solid var(--border); border-radius: 0.25rem; padding: 0.1rem 0; }
+        .dp-colon { font-weight: 700; font-size: 0.9rem; color: var(--text-sub); }
+        .dp-confirm { margin-top: 0.625rem; width: 100%; padding: 0.35rem;
+                      background: var(--primary); color: #fff; border: none; border-radius: 0.375rem;
+                      font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+        .dp-confirm:hover { background: #1d4ed8; }
+
+        .trial-button { border-color: #bfdbfe; background: #eff6ff; color: #1d4ed8; }
+        .trial-button:disabled { opacity: .7; cursor: wait; }
+        .citation-mark { color: #2563eb; font-weight: 700; text-decoration: none; padding: 0 .12rem; }
+        .citation-mark:hover { color: #1d4ed8; text-decoration: underline; }
+        .term-chip { position: relative; display: inline-flex; align-items: center; margin: .2rem .35rem .2rem 0; padding: .28rem .5rem; border-radius: 999px; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; font-size: .77rem; cursor: help; }
+        .term-chip::after { content: attr(data-tooltip); position: absolute; z-index: 10; width: 230px; left: 0; bottom: calc(100% + .45rem); padding: .55rem .65rem; border-radius: .45rem; background: #172033; color: #fff; font-size: .72rem; line-height: 1.5; text-align: left; box-shadow: 0 8px 18px rgba(15,23,42,.2); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .16s ease; }
+        .term-chip:hover::after, .term-chip:focus::after { opacity: 1; visibility: visible; }
+        .insight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: .7rem; }
+        .insight-card { padding: .75rem; border: 1px solid #dbeafe; border-radius: .65rem; background: #f8fbff; font-size: .82rem; line-height: 1.65; }
+        .action-unanswered { display:inline-flex; align-items:center; padding:.13rem .38rem; border-radius:999px; background:#fff7ed; color:#c2410c; font-size:.67rem; font-weight:700; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <span>📘</span> 研行记 Demo
+        </div>
+        <div class="header-actions" style="position: relative;">
+            <button class="btn btn-ghost" onclick="window.location.href='index.html'">返回主页</button>
+            <button class="btn btn-ghost trial-button" id="loadTrialBtn">✨ 加载官方试用案例</button>
+            <button class="btn btn-ghost" id="assetDashboardBtn">组会资料库</button>
+            <button class="btn btn-ghost" id="continueUploadBtn">继续上传素材</button>
+            <button class="btn btn-primary" id="generateBtn" disabled>+ 生成组会记录</button>
+            <button class="btn btn-ghost" id="exportMenuBtn" disabled>导出 ▾</button>
+            <div class="export-menu" id="exportMenu">
+                <div class="export-menu-item" id="exportPdfAction">
+                    <span>📄</span><span>导出为 PDF</span>
+                </div>
+                <div class="export-menu-item" id="exportWordAction">
+                    <span>📝</span><span>导出为 Word</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Left: Upload -->
+        <aside class="sidebar-left">
+    <div class="input-step-title">会前准备</div>
+    <div id="assetLead">
+        按顺序完成：① 上传并整理转写　② 核对 AI 识别的会议信息与汇报人　③ 右侧逐人绑定材料　④ 生成纪要。
+    </div>
+    <div id="trialStatus" style="display:none;margin:.65rem 0;padding:.55rem .65rem;border-radius:.5rem;background:#eff6ff;color:#1d4ed8;font-size:.73rem;line-height:1.5;"></div>
+    <div class="prep-step">
+        <div class="prep-kicker">步骤 1 · 上传并整理转写稿</div>
+        <label class="prep-label" for="rawTranscriptInput">原始语音转写稿</label>
+        <p class="prep-help">粘贴 ASR 原文，或导入 TXT / DOCX。保留「发言人 1」「SPEAKER_00」等原始标签即可。</p>
+        <textarea id="rawTranscriptInput" class="prep-textarea" placeholder="例如：发言人1：我这周完成了……&#10;发言人2：这个对照组还需要补……"></textarea>
+        <div style="display:flex;gap:0.45rem;margin-top:0.55rem;align-items:center;">
+            <button type="button" class="btn btn-ghost" id="selectTranscriptFileBtn" style="font-size:0.75rem;padding:0.35rem 0.55rem;">导入 TXT / DOCX</button>
+            <button type="button" class="btn btn-ghost" id="clearTranscriptTextBtn" style="font-size:0.75rem;padding:0.35rem 0.55rem;">清空文字</button>
+            <button type="button" class="btn btn-ghost" id="removeTranscriptFileBtn" style="display:none;font-size:0.75rem;padding:0.35rem 0.55rem;color:#dc2626;">移除文件</button>
+            <input id="transcriptFileInput" type="file" accept=".txt,.docx" style="display:none;">
+        </div>
+        <div id="transcriptSelectedFile" style="display:none;margin-top:.35rem;font-size:.71rem;color:#475569;"></div>
+        <label class="prep-label" for="speakerInstruction">发言人说明（可选）</label>
+        <textarea id="speakerInstruction" class="prep-textarea" style="min-height:72px;" placeholder="例如：发言人1是钟诗语，发言人2是导师王老师；其余暂时不确定。"></textarea>
+        <p class="prep-help">AI 只会采用你明确说明的身份；不确定的发言人会保留原标签，供你后续确认。</p>
+        <div style="display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary" id="prepareTranscriptBtn" style="font-size:0.78rem;padding:0.42rem 0.62rem;">✨ 整理为可读转写稿</button>
+            <button type="button" class="btn btn-ghost" id="cancelPrepareTranscriptBtn" style="display:none;font-size:0.78rem;padding:0.42rem 0.62rem;color:#dc2626;">停止整理</button>
+        </div>
+        <div id="transcriptFileStatus" class="prep-status">整理后可检查、编辑，再生成正式组会纪要。</div>
+        <div id="transcriptProgress" class="transcript-progress" aria-live="polite">
+            <div class="transcript-progress-head"><span id="transcriptProgressLabel">等待开始</span><span id="transcriptProgressValue"></span></div>
+            <div class="transcript-progress-track"><div id="transcriptProgressBar" class="transcript-progress-bar"></div></div>
+        </div>
+        <label style="display:flex;align-items:flex-start;gap:.42rem;margin-top:.65rem;font-size:.73rem;color:#334155;cursor:pointer;">
+            <input type="checkbox" id="skipTranscriptPreparation" style="margin-top:.14rem;">
+            <span>跳过 AI 整理，直接使用原始转写生成纪要<br><span style="color:#64748b;">适用于已人工校对的转写稿；不会自动识别发言人或补填会议信息。</span></span>
+        </label>
+        <div id="preparedTranscriptWrap">
+            <label class="prep-label" for="transcriptInput">已整理的会议转写（可编辑）</label>
+            <textarea id="transcriptInput" class="prep-textarea" placeholder="点击“整理为可读转写稿”后，结果会显示在这里。"></textarea>
+        </div>
+    </div>
+    <div id="meetingBasicInfoSlot"></div>
+
+    <div class="prep-step" id="materialsPreparation">
+        <div class="input-step-title" style="margin-bottom:0.65rem;">材料与汇报人</div>
+        <div class="prep-kicker">步骤 3 · 按汇报人绑定材料</div>
+        <p class="prep-help">请先在左侧确认汇报人。每位汇报人都有独立上传入口；下方“其他材料”用于会议共用或暂不归属个人的文件。</p>
+        <div id="materialsGateStatus" class="prep-status">等待左侧确认汇报人后解锁。</div>
+        <div class="upload-area" id="uploadArea">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📂</div>
+            <div style="font-size: 0.875rem; font-weight: 500;">上传其他材料</div>
+            <div style="font-size: 0.75rem; color: var(--text-sub); margin-top: 0.25rem;">支持 .pptx、.pdf、.docx</div>
+        </div>
+        <input id="fileInput" type="file" multiple accept=".ppt,.pptx,.pdf,.doc,.docx" style="display: none;">
+        <div class="file-list" id="fileList"></div>
+        <div id="speakerProfilesPanel" style="margin-top:0.85rem;padding-top:0.75rem;border-top:1px solid var(--border);">
+            <div style="font-size:0.78rem;font-weight:600;color:var(--text-main);">每位汇报人的材料</div>
+            <div id="speakerProfilesList" style="font-size:0.72rem;color:var(--text-sub);margin-top:0.45rem;">整理转写稿后，系统会列出发言人；也可以手动填写汇报人后在此绑定材料。</div>
+        </div>
+    </div>
+</aside>
+
+        <div class="col-resizer" id="resizerLeft"></div>
+
+        <!-- Center: Editor -->
+        <section class="editor-area">
+            <div id="editorToolbar" class="editor-toolbar-wrap">
+                <div class="editor-toolbar-group">
+                    <button type="button" id="undoBtn" class="editor-toolbar-btn" title="撤销 (Ctrl+Z)">↶ 撤销</button>
+                    <button type="button" id="saveBtn" class="editor-toolbar-btn" title="保存">💾 保存</button>
+                </div>
+                <div class="editor-toolbar-divider"></div>
+                <div class="editor-toolbar-group">
+                    <select id="fontSelect" class="editor-toolbar-select" title="字体">
+                        <option value="inherit">字体</option>
+                        <option value="SimSun, serif">宋体</option>
+                        <option value="SimHei, sans-serif">黑体</option>
+                        <option value="Microsoft YaHei, sans-serif">微软雅黑</option>
+                        <option value="KaiTi, serif">楷体</option>
+                        <option value="FangSong, serif">仿宋</option>
+                        <option value="-apple-system, BlinkMacSystemFont, sans-serif">系统默认</option>
+                    </select>
+                    <select id="fontSizeSelect" class="editor-toolbar-select" title="字号">
+                        <option value="">字号</option>
+                        <option value="1">10.5pt</option>
+                        <option value="2">12pt</option>
+                        <option value="3">14pt</option>
+                        <option value="4">16pt</option>
+                        <option value="5">18pt</option>
+                        <option value="6">24pt</option>
+                        <option value="7">36pt</option>
+                    </select>
+                </div>
+                <div class="editor-toolbar-divider"></div>
+                <div class="editor-toolbar-group">
+                    <button type="button" id="boldBtn" class="editor-toolbar-btn" title="加粗 (Ctrl+B)"><b>B</b></button>
+                    <button type="button" id="italicBtn" class="editor-toolbar-btn" title="斜体 (Ctrl+I)"><i>I</i></button>
+                    <button type="button" id="highlightBtn" class="editor-toolbar-btn" title="高亮">🖍 高亮</button>
+                </div>
+            </div>
+            <div id="toastSave" class="toast-save">已保存</div>
+            <div id="regenerateBar" style="margin-left: 0;">
+                <button type="button" class="btn btn-primary" id="regenerateBtn">🔄 重新生成</button>
+            </div>
+
+           <div class="paper" id="paperContent">
+    <div id="inputHero">
+        <h3>开始生成组会纪要</h3>
+        <p>先在左侧上传 PPT/文献/转写 Word 或粘贴转写全文，再填写本次会议时间和学科信息。点击右上角“生成组会记录”后，页面会自动切换到纪要阅读与溯源模式。</p>
+    </div>
+    <!-- 组会基础信息：独立于生成结果，不被 innerHTML 替换，保证会议类型/学科选择始终可用 -->
+    <div id="meetingBasicInfo" style="border: 1px solid var(--border); border-radius: 0.75rem; padding: 1rem 1.25rem; margin-bottom: 1.5rem; background: #f9fafb;">
+        <div class="input-step-title">
+            步骤 2 · 核对会议信息与汇报人
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+            <!-- 1. 组会时间 -->
+            <div>
+                <label style="font-size: 0.75rem; color: var(--text-sub);">组会时间</label>
+                <div style="position: relative; margin-top: 0.25rem;">
+                    <input id="meetingTime" type="text" readonly placeholder="点击选择日期和时间"
+                           style="width: 100%; padding: 0.4rem 2rem 0.4rem 0.5rem; border-radius: 0.375rem; border: 1px solid var(--border); font-size: 0.85rem; cursor: pointer; background: white;">
+                    <span style="position:absolute; right:0.5rem; top:50%; transform:translateY(-50%); font-size:0.9rem; pointer-events:none;">📅</span>
+                    <div class="dp-popup" id="dpPopup">
+                        <div class="dp-header">
+                            <button class="dp-nav" id="dpPrev">‹</button>
+                            <span class="dp-title" id="dpTitle"></span>
+                            <button class="dp-nav" id="dpNext">›</button>
+                        </div>
+                        <div class="dp-grid" id="dpGrid"></div>
+                        <div class="dp-time-row">
+                            <span class="dp-time-label">时间</span>
+                            <div class="dp-spin">
+                                <button class="dp-spin-btn" id="hourUp">▲</button>
+                                <div class="dp-spin-val" id="hourVal">09</div>
+                                <button class="dp-spin-btn" id="hourDown">▼</button>
+                            </div>
+                            <span class="dp-colon">:</span>
+                            <div class="dp-spin">
+                                <button class="dp-spin-btn" id="minUp">▲</button>
+                                <div class="dp-spin-val" id="minVal">00</div>
+                                <button class="dp-spin-btn" id="minDown">▼</button>
+                            </div>
+                        </div>
+                        <button class="dp-confirm" id="dpConfirm">确认</button>
+                    </div>
+                </div>
+            </div>
+            <input id="transcriptSummary" type="hidden" value="">
+            <!-- 2. 会议类型/学科 -->
+            <div>
+                <label style="font-size: 0.75rem; color: var(--text-sub);">会议类型 / 学科</label>
+                <div style="display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.25rem;">
+                    <select id="meetingTypeSelect" style="width: 100%; padding: 0.4rem 0.5rem; border-radius: 0.375rem; border: 1px solid var(--border); font-size: 0.85rem;">
+                        <option value="">由 AI 自动识别</option>
+                        <option value="人文社科">人文社科</option>
+                        <option value="实验工科">实验工科</option>
+                        <option value="理论数理">理论数理</option>
+                        <option value="通用组会">通用组会</option>
+                    </select>
+                    <span style="font-size: 0.74rem; color: var(--text-sub);">或填写具体学科（可选）</span>
+                    <input id="disciplineInput" type="text" placeholder="输入自己的学科，如：农业经济、计算机视觉"
+                           style="width: 100%; padding: 0.4rem 0.5rem; border-radius: 0.375rem; border: 1px solid var(--border); font-size: 0.85rem;">
+                </div>
+            </div>
+            <!-- 3. 参与人（逗号隔开，精准识别人名） -->
+            <div>
+                <label style="font-size: 0.75rem; color: var(--text-sub);">参与人</label>
+                <input id="participantsInput" type="text" placeholder="用逗号隔开，如：张三，李四，王老师（选填）"
+                       style="width: 100%; padding: 0.4rem 0.5rem; border-radius: 0.375rem; border: 1px solid var(--border); font-size: 0.85rem; margin-top: 0.25rem;">
+                <span style="font-size: 0.7rem; color: var(--text-sub); display: block; margin-top: 0.2rem;">多人请用英文或中文逗号隔开，便于精准识别人名</span>
+            </div>
+            <!-- 4. 汇报人（逗号隔开，输出按此名单显示） -->
+            <div>
+                <label style="font-size: 0.75rem; color: var(--text-sub);">汇报人</label>
+                <input id="reportersInput" type="text" placeholder="用逗号隔开，如：张三，李四，王五，杨六（选填）"
+                       style="width: 100%; padding: 0.4rem 0.5rem; border-radius: 0.375rem; border: 1px solid var(--border); font-size: 0.85rem; margin-top: 0.25rem;">
+                <span style="font-size: 0.7rem; color: var(--text-sub); display: block; margin-top: 0.2rem;">多人请用英文或中文逗号隔开，纪要将按「张三」「李四」「王五」「杨六」顺序输出</span>
+            </div>
+            <div>
+                <button type="button" class="btn btn-primary" id="confirmReportersBtn" style="font-size:0.8rem;padding:0.42rem 0.65rem;">确认汇报人，开始绑定材料 →</button>
+                <span id="reportersConfirmStatus" style="font-size:0.7rem;color:var(--text-sub);display:block;margin-top:0.28rem;">AI 整理转写后会尽量填入候选信息；请核对后确认。</span>
+            </div>
+        </div>
+        <!-- 角色和主题由 AI 自动识别，无需手动填写 -->
+        <input type="hidden" id="meetingTopic" value="">
+        <input type="hidden" id="meetingRoles" value="">
+    </div>
+
+    <!-- 仅此区域会被生成结果替换；组会基础信息在上方，不会被覆盖 -->
+    <div id="recordContent">
+        <div class="empty-state" id="emptyState">
+            <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.2;">📝</div>
+            <p style="color: var(--text-sub);">请先在左侧上传 PPT/文献或粘贴转写，然后点击右上角“生成”按钮</p>
+        </div>
+    </div>
+</div> 
+        </section>
+
+        <div class="col-resizer" id="resizerRight"></div>
+
+        <!-- Right: Preview -->
+        <aside class="sidebar-right">
+            <div id="materialsPreparationSlot"></div>
+            <div id="sourcePreviewPanel">
+            <div class="section-title">素材溯源</div>
+            <div class="preview-card">
+                <div class="preview-header">
+                    <span id="previewTitle">无内容</span>
+                    <span style="font-size: 0.75rem; color: var(--text-sub);" id="previewMeta">-</span>
+                </div>
+                <div class="preview-content" id="previewContent">
+                    <div style="text-align: center; padding: 1rem;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.3;">👁️</div>
+                        <div style="font-size: 0.75rem; color: var(--text-sub);">鼠标悬停纪要中的句子<br>在此处查看 PPT / PDF / 语音转录出处</div>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- 必须位于 main / editor-area 之外：输入页会隐藏 editor-area。 -->
+    <div class="loading-overlay" id="loadingOverlay" role="status" aria-live="assertive" aria-label="组会纪要生成进度">
+        <div class="loading-card">
+            <div class="loading-spinner" style="margin-left:auto;margin-right:auto;"></div>
+            <div style="color: var(--text-main); font-size: .94rem; font-weight:700;" id="loadingText">正在准备生成任务…</div>
+            <div style="color:#64748b;font-size:.72rem;margin-top:.35rem;">这是后端实际处理节点，不是倒计时。</div>
+            <div class="generation-progress" aria-live="polite">
+                <div class="generation-progress-head"><span id="generationProgressLabel">等待开始</span><span id="generationProgressValue">0%</span></div>
+                <div class="generation-progress-track"><div id="generationProgressBar" class="generation-progress-bar"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="library-modal" id="libraryModal" role="dialog" aria-modal="true" aria-label="组会资料库">
+        <div class="library-panel">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;"><div><div style="font-size:1.15rem;font-weight:700;">组会资料库</div><div style="font-size:.76rem;color:#64748b;margin-top:.2rem;">跨组会记忆、行动项闭环、导师关注点与全局搜索</div></div><div style="display:flex;gap:.45rem;"><button class="btn btn-primary" id="addLibraryMeetingBtn" style="font-size:.72rem;padding:.42rem .6rem;">＋ 新建组会</button><button class="btn btn-ghost" id="closeLibraryBtn">关闭</button></div></div>
+            <div style="display:flex;gap:.5rem;margin-top:1rem;"><input id="librarySearchInput" placeholder="搜索实验、文献、导师意见或行动项" style="flex:1;padding:.55rem;border:1px solid #cbd5e1;border-radius:.45rem;"><button class="btn btn-primary" id="librarySearchBtn">搜索</button></div>
+            <div class="library-grid">
+                <div class="library-card"><strong style="font-size:.85rem;">组会日历热力图</strong><div id="libraryHeatmap" class="heatmap"></div><div style="font-size:.68rem;color:#64748b;margin-top:.45rem;">颜色越深代表当天沉淀的组会越多</div></div>
+                <div class="library-card"><strong style="font-size:.85rem;">导师高频关注点</strong><div id="mentorFocusList" style="margin-top:.5rem;"></div></div>
+                <div class="library-card"><strong style="font-size:.85rem;">跨组会行动项</strong><div id="libraryActionList" style="margin-top:.4rem;"></div></div>
+                <div class="library-card"><strong style="font-size:.85rem;">会议资料归档与搜索结果</strong><div id="libraryMeetingList" style="margin-top:.4rem;"></div></div>
+                <div class="library-card"><strong style="font-size:.85rem;">导师摘要</strong><div id="mentorBriefList" style="margin-top:.4rem;"></div></div>
+                <div class="library-card"><strong style="font-size:.85rem;">学生轨迹</strong><div id="studentTrajectoryList" style="margin-top:.4rem;"></div></div>
+                <div class="library-card"><strong style="font-size:.85rem;">创新点迁移</strong><div id="innovationTransferList" style="margin-top:.4rem;"></div></div>
+            </div>
+            <div id="libraryAssetPreview" class="library-card" style="display:none;margin-top:1rem;"><div style="display:flex;justify-content:space-between;gap:.75rem;align-items:center;"><strong id="libraryAssetPreviewTitle" style="font-size:.85rem;"></strong><button type="button" id="closeAssetPreviewBtn" class="btn btn-ghost" style="font-size:.7rem;padding:.25rem .45rem;">收起预览</button></div><div id="libraryAssetPreviewMeta" style="font-size:.7rem;color:#64748b;margin-top:.35rem;"></div><pre id="libraryAssetPreviewText" style="white-space:pre-wrap;max-height:260px;overflow:auto;margin:.55rem 0 0;padding:.65rem;background:#f8fafc;border-radius:.45rem;font: .75rem/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;"></pre></div>
+        </div>
+    </div>
+    <div class="library-modal" id="pptPreviewModal" role="dialog" aria-modal="true" aria-label="PPT 全页预览">
+        <div class="library-panel" style="max-width:1000px;"><div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;"><div><div id="pptPreviewModalTitle" style="font-size:1.05rem;font-weight:700;">PPT 全页预览</div><div style="font-size:.73rem;color:#64748b;margin-top:.2rem;">点击任意页可放大查看；选中的溯源页会自动定位。</div></div><button class="btn btn-ghost" id="closePptPreviewBtn">关闭</button></div><div id="pptPreviewAllSlides" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.8rem;margin-top:1rem;max-height:70vh;overflow:auto;padding:.1rem .25rem .8rem;"></div></div>
+    </div>
+
+<script>
+    const state = {
+        files: [],
+        speakerProfiles: [],
+        detectedSpeakers: [],
+        transcriptFile: null,
+        originalTranscript: '',
+        isPreparingTranscript: false,
+        transcriptAbortController: null,
+        transcriptSegments: null,
+        reportersConfirmed: false,
+        isGenerating: false,
+        hasGenerated: false,
+        selectedMeetingType: '',
+        selectedDiscipline: ''
+    };
+    // 准备阶段按用户操作习惯重新分区：左侧填会议与转写，右侧逐人绑定材料。
+    const meetingBasicInfoSlot = document.getElementById('meetingBasicInfoSlot');
+    const meetingBasicInfoPanel = document.getElementById('meetingBasicInfo');
+    const materialsPreparationSlot = document.getElementById('materialsPreparationSlot');
+    const materialsPreparationPanel = document.getElementById('materialsPreparation');
+    if (meetingBasicInfoSlot && meetingBasicInfoPanel) meetingBasicInfoSlot.appendChild(meetingBasicInfoPanel);
+    if (materialsPreparationSlot && materialsPreparationPanel) materialsPreparationSlot.appendChild(materialsPreparationPanel);
+    // 部署到不同后端时可通过 ?api=http://host:port 临时指定；未指定时沿用本机默认端口。
+    const apiOverride = new URLSearchParams(window.location.search).get('api');
+    const API_BASE_URL = (apiOverride || window.localStorage.getItem('ranApiBaseUrl') || 'http://127.0.0.1:8003').replace(/\/$/, '');
+    const loadTrialBtn = document.getElementById('loadTrialBtn');
+    const trialStatus = document.getElementById('trialStatus');
+    const assetDashboardBtn = document.getElementById('assetDashboardBtn');
+    const libraryModal = document.getElementById('libraryModal');
+    const closeLibraryBtn = document.getElementById('closeLibraryBtn');
+    const addLibraryMeetingBtn = document.getElementById('addLibraryMeetingBtn');
+    const librarySearchInput = document.getElementById('librarySearchInput');
+    const librarySearchBtn = document.getElementById('librarySearchBtn');
+    const libraryHeatmap = document.getElementById('libraryHeatmap');
+    const mentorFocusList = document.getElementById('mentorFocusList');
+    const libraryActionList = document.getElementById('libraryActionList');
+    const libraryMeetingList = document.getElementById('libraryMeetingList');
+    const libraryAssetPreview = document.getElementById('libraryAssetPreview');
+    const libraryAssetPreviewTitle = document.getElementById('libraryAssetPreviewTitle');
+    const libraryAssetPreviewMeta = document.getElementById('libraryAssetPreviewMeta');
+    const libraryAssetPreviewText = document.getElementById('libraryAssetPreviewText');
+    const closeAssetPreviewBtn = document.getElementById('closeAssetPreviewBtn');
+    const pptPreviewModal = document.getElementById('pptPreviewModal');
+    const pptPreviewModalTitle = document.getElementById('pptPreviewModalTitle');
+    const pptPreviewAllSlides = document.getElementById('pptPreviewAllSlides');
+    const closePptPreviewBtn = document.getElementById('closePptPreviewBtn');
+    const mentorBriefList = document.getElementById('mentorBriefList');
+    const studentTrajectoryList = document.getElementById('studentTrajectoryList');
+    const innovationTransferList = document.getElementById('innovationTransferList');
+
+    function renderLibrary(data) {
+        const heat = new Map((data.heatmap || []).map(item => [item.date, item.count]));
+        const days = Array.from({length: 70}, (_, index) => {
+            const day = new Date(); day.setDate(day.getDate() - (69 - index));
+            return day.toISOString().slice(0, 10);
+        });
+        libraryHeatmap.innerHTML = days.map(day => {
+            const count = Math.min(4, heat.get(day) || 0);
+            return `<div class="heat-cell" data-count="${count}" title="${day}：${heat.get(day) || 0} 场组会"></div>`;
+        }).join('');
+        mentorFocusList.innerHTML = (data.mentor_focus || []).length
+            ? data.mentor_focus.map(item => `<span style="display:inline-block;padding:.22rem .42rem;margin:0 .3rem .3rem 0;background:#eff6ff;color:#1d4ed8;border-radius:999px;font-size:.72rem;">${escapeHtml(item.term)} × ${item.count}</span>`).join('')
+            : '<span style="font-size:.75rem;color:#64748b;">生成几场纪要后，会在这里归纳导师反复关注的问题。</span>';
+        libraryActionList.innerHTML = (data.actions || []).length ? data.actions.map(item => `<div class="library-row"><div><span style="font-weight:600;">${escapeHtml(item.reporter || '待确认')}</span> · ${escapeHtml(item.description || '')} ${item.needs_response ? '<span class="action-unanswered">⚠ 待回应</span>' : ''}</div><div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin-top:.3rem;color:#64748b;"><span>${escapeHtml(item.due || '未明确')}</span><select data-action-status="${item.id}" style="font-size:.7rem;border:1px solid #cbd5e1;border-radius:.25rem;"><option value="open"${item.status === 'open' ? ' selected' : ''}>未开始</option><option value="in_progress"${item.status === 'in_progress' ? ' selected' : ''}>进行中</option><option value="done"${item.status === 'done' ? ' selected' : ''}>已完成</option><option value="blocked"${item.status === 'blocked' ? ' selected' : ''}>受阻</option></select><button type="button" data-action-response="${item.id}" data-response-status="${item.response_status || 'unanswered'}" class="btn btn-ghost" style="font-size:.66rem;padding:.18rem .38rem;">${item.response_status === 'responded' ? '已回应' : '标为已回应'}</button><button type="button" data-action-edit="${item.id}" data-action-description="${escapeHtml(item.description || '')}" data-action-due="${escapeHtml(item.due || '')}" class="btn btn-ghost" style="font-size:.66rem;padding:.18rem .38rem;">编辑</button><button type="button" data-action-delete="${item.id}" class="btn btn-ghost" style="font-size:.66rem;padding:.18rem .38rem;color:#dc2626;">删除</button></div>${item.response_note ? `<div style="margin-top:.28rem;color:#64748b;font-size:.68rem;">回应：${escapeHtml(item.response_note)}</div>` : ''}</div>`).join('') : '<div style="font-size:.75rem;color:#64748b;">暂无跨组会行动项。</div>';
+        libraryMeetingList.innerHTML = (data.meetings || []).length ? data.meetings.map(item => {
+            const assets = item.assets || [];
+            const assetRows = assets.length ? assets.map(asset => `<div style="display:flex;align-items:center;gap:.4rem;margin-top:.35rem;padding:.35rem .4rem;background:#f8fafc;border-radius:.35rem;"><span style="font-size:.68rem;color:#2563eb;white-space:nowrap;">${escapeHtml((asset.owners || ['其他材料']).join('、'))}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(asset.name || '')}">${escapeHtml(asset.name || '未命名文件')}</span><button type="button" data-asset-preview="${asset.id}" data-meeting-id="${item.id}" style="border:0;background:transparent;color:#2563eb;cursor:pointer;font-size:.7rem;">预览</button><a href="${API_BASE_URL}/library/assets/${encodeURIComponent(item.id)}/${encodeURIComponent(asset.id)}?download=true" style="color:#047857;font-size:.7rem;text-decoration:none;">下载</a><button type="button" data-asset-delete="${asset.id}" data-meeting-id="${item.id}" style="border:0;background:transparent;color:#dc2626;cursor:pointer;font-size:.7rem;">删除</button></div>`).join('') : '<div style="margin-top:.35rem;color:#94a3b8;font-size:.7rem;">本场暂无已归档材料。</div>';
+            return `<div class="library-row"><div style="display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;"><strong>${escapeHtml(item.meeting_time || '未标时间')}</strong> <span style="color:#64748b;">${escapeHtml(item.meeting_type || '')} ${escapeHtml(item.discipline || '')}</span><button type="button" data-meeting-edit="${item.id}" data-meeting-time="${escapeHtml(item.meeting_time || '')}" data-meeting-type="${escapeHtml(item.meeting_type || '')}" data-meeting-discipline="${escapeHtml(item.discipline || '')}" data-meeting-summary="${escapeHtml(item.summary || '')}" class="btn btn-ghost" style="font-size:.66rem;padding:.18rem .38rem;margin-left:auto;">编辑</button><button type="button" data-meeting-delete="${item.id}" class="btn btn-ghost" style="font-size:.66rem;padding:.18rem .38rem;color:#dc2626;">删除组会</button></div><div>${escapeHtml(item.summary || '暂无摘要')}</div><div style="margin-top:.35rem;font-size:.7rem;font-weight:600;color:#475569;">按人员归档的材料 <label style="float:right;color:#2563eb;cursor:pointer;font-weight:500;">＋ 添加文件<input type="file" data-asset-upload="${item.id}" accept=".ppt,.pptx,.pdf,.doc,.docx,.txt" style="display:none;"></label></div>${assetRows}</div>`;
+        }).join('') : '<div style="font-size:.75rem;color:#64748b;">暂无已沉淀的组会记录。</div>';
+        mentorBriefList.innerHTML = (data.mentor_briefs || []).length ? data.mentor_briefs.map(item => `<div class="library-row"><strong>${escapeHtml(item.meeting_time || '本场')}</strong><div>${escapeHtml(item.text || '')}</div></div>`).join('') : '<div style="font-size:.75rem;color:#64748b;">生成纪要后会在这里提炼导师的判断框架。</div>';
+        studentTrajectoryList.innerHTML = (data.student_trajectories || []).length ? data.student_trajectories.map(item => `<div class="library-row"><strong>${escapeHtml(item.student)}</strong>${(item.updates || []).map(update => `<div style="margin-top:.28rem;font-size:.72rem;"><span style="color:#64748b;">${escapeHtml(update.meeting_time || '')}</span> ${escapeHtml(update.progress || '')}<br><span style="color:#2563eb;">下一步：${escapeHtml(update.next_focus || '待补充')}</span></div>`).join('')}</div>`).join('') : '<div style="font-size:.75rem;color:#64748b;">生成多场同一学生的纪要后，这里会展示推进轨迹。</div>';
+        innovationTransferList.innerHTML = (data.innovation_transfers || []).length ? data.innovation_transfers.map(item => `<div class="library-row"><strong>${escapeHtml(item.source_domain || '原领域')} → ${escapeHtml(item.target_domain || '本研究')}</strong><div>${escapeHtml(item.transferable_idea || '')}</div><div style="color:#2563eb;font-size:.7rem;margin-top:.2rem;">可尝试：${escapeHtml(item.application || '')}</div><div style="color:#b45309;font-size:.68rem;margin-top:.15rem;">边界：${escapeHtml(item.caution || '')}</div></div>`).join('') : '<div style="font-size:.75rem;color:#64748b;">当材料存在可迁移的方法或机制时，会在这里沉淀为待验证启发。</div>';
+    }
+
+    async function loadLibrary(query = '') {
+        const endpoint = query ? `${API_BASE_URL}/library/search?q=${encodeURIComponent(query)}` : `${API_BASE_URL}/library/overview`;
+        const response = await fetch(endpoint);
+        if (!response.ok) throw new Error('资料库读取失败');
+        const data = await response.json();
+        if (query) renderLibrary({ ...data, heatmap: [], mentor_focus: [] }); else renderLibrary(data);
+    }
+
+    if (assetDashboardBtn) assetDashboardBtn.addEventListener('click', async () => { libraryModal.classList.add('open'); try { await loadLibrary(); } catch (error) { libraryMeetingList.textContent = error.message; } });
+    if (closeLibraryBtn) closeLibraryBtn.addEventListener('click', () => libraryModal.classList.remove('open'));
+    if (addLibraryMeetingBtn) addLibraryMeetingBtn.addEventListener('click', async () => {
+        const meetingTime = window.prompt('组会时间（例如 2026-09-04 14:00）', new Date().toISOString().slice(0, 16).replace('T', ' '));
+        if (meetingTime === null) return;
+        const summary = window.prompt('填写一句会议摘要（可后续编辑）', '') || '';
+        try {
+            const response = await fetch(`${API_BASE_URL}/library/meetings`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({meeting_time: meetingTime, summary}) });
+            if (!response.ok) throw new Error((await response.json()).detail || '新建组会失败');
+            await loadLibrary();
+        } catch (error) { alert(error.message || '新建组会失败'); }
+    });
+    if (librarySearchBtn) librarySearchBtn.addEventListener('click', () => loadLibrary(librarySearchInput.value.trim()));
+    if (librarySearchInput) librarySearchInput.addEventListener('keydown', event => { if (event.key === 'Enter') loadLibrary(librarySearchInput.value.trim()); });
+    if (libraryActionList) libraryActionList.addEventListener('change', async event => {
+        const actionId = event.target && event.target.dataset.actionStatus;
+        if (!actionId) return;
+        await fetch(`${API_BASE_URL}/library/action-items/${actionId}`, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({status: event.target.value}) });
+        await loadLibrary();
+    });
+    if (libraryActionList) libraryActionList.addEventListener('click', async event => {
+        const editBtn = event.target && event.target.closest('[data-action-edit]');
+        if (editBtn) {
+            const description = window.prompt('行动项内容', editBtn.dataset.actionDescription || '');
+            if (description === null) return;
+            const due = window.prompt('截止时间', editBtn.dataset.actionDue || '未明确');
+            if (due === null) return;
+            try {
+                const response = await fetch(`${API_BASE_URL}/library/action-items/${encodeURIComponent(editBtn.dataset.actionEdit)}`, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({description, due}) });
+                if (!response.ok) throw new Error((await response.json()).detail || '行动项编辑失败');
+                await loadLibrary();
+            } catch (error) { alert(error.message || '行动项编辑失败'); }
+            return;
+        }
+        const deleteBtn = event.target && event.target.closest('[data-action-delete]');
+        if (deleteBtn) {
+            if (!window.confirm('确定删除这条行动项吗？此操作不可撤销。')) return;
+            try {
+                const response = await fetch(`${API_BASE_URL}/library/action-items/${encodeURIComponent(deleteBtn.dataset.actionDelete)}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error((await response.json()).detail || '行动项删除失败');
+                await loadLibrary();
+            } catch (error) { alert(error.message || '行动项删除失败'); }
+            return;
+        }
+        const button = event.target && event.target.closest('[data-action-response]');
+        if (!button) return;
+        const actionId = button.dataset.actionResponse;
+        const isResponded = button.dataset.responseStatus === 'responded';
+        button.disabled = true;
+        try {
+            const response = await fetch(`${API_BASE_URL}/library/action-items/${actionId}`, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({response_status: isResponded ? 'unanswered' : 'responded'}) });
+            if (!response.ok) throw new Error('行动项状态更新失败');
+            await loadLibrary();
+        } catch (error) { alert(error.message || '状态更新失败'); button.disabled = false; }
+    });
+    if (libraryMeetingList) libraryMeetingList.addEventListener('click', async event => {
+        const meetingEditBtn = event.target && event.target.closest('[data-meeting-edit]');
+        if (meetingEditBtn) {
+            const meeting_time = window.prompt('组会时间', meetingEditBtn.dataset.meetingTime || '');
+            if (meeting_time === null) return;
+            const meeting_type = window.prompt('会议类型', meetingEditBtn.dataset.meetingType || '');
+            if (meeting_type === null) return;
+            const discipline = window.prompt('学科', meetingEditBtn.dataset.meetingDiscipline || '');
+            if (discipline === null) return;
+            const summary = window.prompt('会议摘要', meetingEditBtn.dataset.meetingSummary || '');
+            if (summary === null) return;
+            try {
+                const response = await fetch(`${API_BASE_URL}/library/meetings/${encodeURIComponent(meetingEditBtn.dataset.meetingEdit)}`, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({meeting_time, meeting_type, discipline, summary}) });
+                if (!response.ok) throw new Error((await response.json()).detail || '组会编辑失败');
+                await loadLibrary();
+            } catch (error) { alert(error.message || '组会编辑失败'); }
+            return;
+        }
+        const meetingDeleteBtn = event.target && event.target.closest('[data-meeting-delete]');
+        if (meetingDeleteBtn) {
+            if (!window.confirm('确定删除这场组会及其全部归档文件、行动项吗？此操作不可撤销。')) return;
+            try {
+                const response = await fetch(`${API_BASE_URL}/library/meetings/${encodeURIComponent(meetingDeleteBtn.dataset.meetingDelete)}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error((await response.json()).detail || '组会删除失败');
+                libraryAssetPreview.style.display = 'none';
+                await loadLibrary();
+            } catch (error) { alert(error.message || '组会删除失败'); }
+            return;
+        }
+        const assetDeleteBtn = event.target && event.target.closest('[data-asset-delete]');
+        if (assetDeleteBtn) {
+            if (!window.confirm('确定删除这份归档文件吗？此操作不可撤销。')) return;
+            try {
+                const response = await fetch(`${API_BASE_URL}/library/assets/${encodeURIComponent(assetDeleteBtn.dataset.meetingId)}/${encodeURIComponent(assetDeleteBtn.dataset.assetDelete)}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error((await response.json()).detail || '文件删除失败');
+                libraryAssetPreview.style.display = 'none';
+                await loadLibrary();
+            } catch (error) { alert(error.message || '文件删除失败'); }
+            return;
+        }
+        const previewBtn = event.target && event.target.closest('[data-asset-preview]');
+        if (!previewBtn) return;
+        const meetingId = previewBtn.dataset.meetingId;
+        const assetId = previewBtn.dataset.assetPreview;
+        if (!meetingId || !assetId) return;
+        previewBtn.textContent = '加载中…';
+        try {
+            const response = await fetch(`${API_BASE_URL}/library/assets/${encodeURIComponent(meetingId)}/${encodeURIComponent(assetId)}/preview`);
+            if (!response.ok) throw new Error('材料预览读取失败');
+            const data = await response.json();
+            libraryAssetPreviewTitle.textContent = data.name || '材料预览';
+            libraryAssetPreviewMeta.textContent = `${(data.owners || []).join('、')} · ${data.type || 'file'} · 可在上方下载原文件`;
+            libraryAssetPreviewText.textContent = data.text || '该文件没有可提取的文本，请下载原文件查看。';
+            libraryAssetPreview.style.display = 'block';
+            libraryAssetPreview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } catch (error) {
+            alert(error.message || '材料预览失败');
+        } finally {
+            previewBtn.textContent = '预览';
+        }
+    });
+    if (libraryMeetingList) libraryMeetingList.addEventListener('change', async event => {
+        const input = event.target && event.target.closest('[data-asset-upload]');
+        const file = input && input.files && input.files[0];
+        if (!input || !file) return;
+        const formData = new FormData(); formData.append('file', file);
+        try {
+            const response = await fetch(`${API_BASE_URL}/library/assets/${encodeURIComponent(input.dataset.assetUpload)}`, { method: 'POST', body: formData });
+            if (!response.ok) throw new Error((await response.json()).detail || '文件添加失败');
+            await loadLibrary();
+        } catch (error) { alert(error.message || '文件添加失败'); input.value = ''; }
+    });
+    if (closeAssetPreviewBtn) closeAssetPreviewBtn.addEventListener('click', () => { libraryAssetPreview.style.display = 'none'; });
+
+    let currentRecord = null;
+    let lastGeneratedHTML = '';
+    let savedHTML = '';
+    let initialHTML = '';
+    let autosaveTimer = null;
+    const undoHistory = [];
+    const UNDO_MAX = 50;
+
+    const uploadArea = document.getElementById('uploadArea');
+    const fileList = document.getElementById('fileList');
+    const generateBtn = document.getElementById('generateBtn');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingText = document.getElementById('loadingText');
+    const generationProgressLabel = document.getElementById('generationProgressLabel');
+    const generationProgressValue = document.getElementById('generationProgressValue');
+    const generationProgressBar = document.getElementById('generationProgressBar');
+    const paperContent = document.getElementById('paperContent');
+    const recordContent = document.getElementById('recordContent');
+    const emptyState = document.getElementById('emptyState');
+    /** 生成后的可编辑正文容器，仅渲染后存在；用于 innerHTML/contenteditable/撤销/导出 */
+    function getRecordBody() { return document.getElementById('generatedRecord'); }
+    const previewContent = document.getElementById('previewContent');
+    const previewTitle = document.getElementById('previewTitle');
+    const previewMeta = document.getElementById('previewMeta');
+    const editorToolbar = document.getElementById('editorToolbar');
+    const saveBtn = document.getElementById('saveBtn');
+    const undoBtn = document.getElementById('undoBtn');
+    const exportMenuBtn = document.getElementById('exportMenuBtn');
+    const exportMenu = document.getElementById('exportMenu');
+    const exportPdfAction = document.getElementById('exportPdfAction');
+    const exportWordAction = document.getElementById('exportWordAction');
+    const continueUploadBtn = document.getElementById('continueUploadBtn');
+    const regenerateBtn = document.getElementById('regenerateBtn');
+    const mainLayout = document.querySelector('main');
+    const resizerLeft = document.getElementById('resizerLeft');
+    const resizerRight = document.getElementById('resizerRight');
+
+    let isResizing = false;
+    let resizeTarget = null;
+    let startX = 0;
+    let startWidthLeft = 0;
+    let startWidthRight = 0;
+
+    function setGeneratedMode(enabled) {
+        const on = !!enabled;
+        document.body.classList.toggle('generated-mode', on);
+        document.body.classList.toggle('input-mode', !on);
+    }
+    // 初始进入页面：仅显示上传素材 + 基本信息
+    setGeneratedMode(false);
+
+    // 基础信息输入
+    const meetingTime = document.getElementById('meetingTime');
+    const transcriptSummary = document.getElementById('transcriptSummary');
+    (function initMeetingTypeState() {
+        const sel = document.getElementById('meetingTypeSelect');
+        const inp = document.getElementById('disciplineInput');
+        if (sel) {
+            state.selectedMeetingType = sel.value || '';
+            sel.addEventListener('change', () => { state.selectedMeetingType = sel.value || ''; });
+        }
+        if (inp) {
+            state.selectedDiscipline = (inp.value || '').trim();
+            inp.addEventListener('input', () => { state.selectedDiscipline = (inp.value || '').trim(); });
+            inp.addEventListener('change', () => { state.selectedDiscipline = (inp.value || '').trim(); });
+        }
+    })();
+
+    // ── Date Picker ──────────────────────────────────────────
+    (function initDatePicker() {
+        const MONTHS = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+        const WEEKDAYS = ['日','一','二','三','四','五','六'];
+        const popup = document.getElementById('dpPopup');
+        const title = document.getElementById('dpTitle');
+        const grid  = document.getElementById('dpGrid');
+        const hourVal = document.getElementById('hourVal');
+        const minVal  = document.getElementById('minVal');
+
+        const now = new Date();
+        let cur = { year: now.getFullYear(), month: now.getMonth() }; // 0-indexed month
+        let sel = { year: now.getFullYear(), month: now.getMonth(), day: now.getDate(),
+                    hour: 9, min: 0 };
+
+        function pad(n) { return String(n).padStart(2,'0'); }
+
+        function renderCalendar() {
+            title.textContent = `${cur.year} 年 ${MONTHS[cur.month]}`;
+            grid.innerHTML = '';
+            WEEKDAYS.forEach(d => {
+                const el = document.createElement('div');
+                el.className = 'dp-weekday'; el.textContent = d;
+                grid.appendChild(el);
+            });
+            const firstDay = new Date(cur.year, cur.month, 1).getDay();
+            const daysInMonth = new Date(cur.year, cur.month + 1, 0).getDate();
+            const daysInPrev  = new Date(cur.year, cur.month, 0).getDate();
+            // leading blanks from previous month
+            for (let i = firstDay - 1; i >= 0; i--) {
+                const btn = document.createElement('button');
+                btn.className = 'dp-day other-month';
+                btn.textContent = daysInPrev - i;
+                btn.disabled = true;
+                grid.appendChild(btn);
+            }
+            for (let d = 1; d <= daysInMonth; d++) {
+                const btn = document.createElement('button');
+                btn.className = 'dp-day';
+                btn.textContent = d;
+                const isToday = d === now.getDate() && cur.month === now.getMonth() && cur.year === now.getFullYear();
+                const isSelected = d === sel.day && cur.month === sel.month && cur.year === sel.year;
+                if (isToday) btn.classList.add('today');
+                if (isSelected) btn.classList.add('selected');
+                btn.addEventListener('click', () => {
+                    sel.year = cur.year; sel.month = cur.month; sel.day = d;
+                    renderCalendar();
+                });
+                grid.appendChild(btn);
+            }
+            hourVal.textContent = pad(sel.hour);
+            minVal.textContent  = pad(sel.min);
+        }
+
+        document.getElementById('dpPrev').addEventListener('click', () => {
+            cur.month--; if (cur.month < 0) { cur.month = 11; cur.year--; }
+            renderCalendar();
+        });
+        document.getElementById('dpNext').addEventListener('click', () => {
+            cur.month++; if (cur.month > 11) { cur.month = 0; cur.year++; }
+            renderCalendar();
+        });
+        document.getElementById('hourUp').addEventListener('click',   () => { sel.hour = (sel.hour + 1) % 24; renderCalendar(); });
+        document.getElementById('hourDown').addEventListener('click', () => { sel.hour = (sel.hour + 23) % 24; renderCalendar(); });
+        document.getElementById('minUp').addEventListener('click',    () => { sel.min = (sel.min + 5) % 60; renderCalendar(); });
+        document.getElementById('minDown').addEventListener('click',  () => { sel.min = (sel.min + 55) % 60; renderCalendar(); });
+
+        document.getElementById('dpConfirm').addEventListener('click', () => {
+            const dateStr = `${sel.year}-${pad(sel.month + 1)}-${pad(sel.day)} ${pad(sel.hour)}:${pad(sel.min)}`;
+            meetingTime.value = dateStr;
+            meetingTime.dispatchEvent(new Event('change', { bubbles: true }));
+            popup.classList.remove('open');
+        });
+
+        // 输入框只负责“打开”日历，不做 toggle，避免误触关闭
+        meetingTime.addEventListener('click', () => {
+            if (!popup.classList.contains('open')) {
+                cur = { year: sel.year, month: sel.month };
+                renderCalendar();
+                popup.classList.add('open');
+            }
+        });
+        // 不再监听“点击外部自动关闭”，仅在“确认”按钮时关闭
+
+        renderCalendar();
+    })();
+    // ─────────────────────────────────────────────────────────
+
+    // 新增：真实文件选择
+    const fileInput = document.getElementById('fileInput');
+    const rawTranscriptInput = document.getElementById('rawTranscriptInput');
+    const transcriptInput = document.getElementById('transcriptInput');
+    const transcriptFileInput = document.getElementById('transcriptFileInput');
+    const selectTranscriptFileBtn = document.getElementById('selectTranscriptFileBtn');
+    const clearTranscriptTextBtn = document.getElementById('clearTranscriptTextBtn');
+    const removeTranscriptFileBtn = document.getElementById('removeTranscriptFileBtn');
+    const transcriptSelectedFile = document.getElementById('transcriptSelectedFile');
+    const speakerInstruction = document.getElementById('speakerInstruction');
+    const prepareTranscriptBtn = document.getElementById('prepareTranscriptBtn');
+    const cancelPrepareTranscriptBtn = document.getElementById('cancelPrepareTranscriptBtn');
+    const transcriptFileStatus = document.getElementById('transcriptFileStatus');
+    const transcriptProgress = document.getElementById('transcriptProgress');
+    const transcriptProgressLabel = document.getElementById('transcriptProgressLabel');
+    const transcriptProgressValue = document.getElementById('transcriptProgressValue');
+    const transcriptProgressBar = document.getElementById('transcriptProgressBar');
+    const skipTranscriptPreparation = document.getElementById('skipTranscriptPreparation');
+    const preparedTranscriptWrap = document.getElementById('preparedTranscriptWrap');
+    const speakerProfilesList = document.getElementById('speakerProfilesList');
+    const reportersField = document.getElementById('reportersInput');
+    const participantsField = document.getElementById('participantsInput');
+    const confirmReportersBtn = document.getElementById('confirmReportersBtn');
+    const reportersConfirmStatus = document.getElementById('reportersConfirmStatus');
+    const materialsGateStatus = document.getElementById('materialsGateStatus');
+    let transcriptProgressTimer = null;
+    let transcriptProgressStartedAt = 0;
+
+    function formatElapsed(seconds) {
+        const min = Math.floor(seconds / 60);
+        return min ? `${min} 分 ${seconds % 60} 秒` : `${seconds} 秒`;
+    }
+
+    function setTranscriptProgress(label, stateName = 'active', detail = '', percent = 0) {
+        if (!transcriptProgress) return;
+        transcriptProgress.className = `transcript-progress ${stateName}`;
+        if (transcriptProgressLabel) transcriptProgressLabel.textContent = label;
+        if (transcriptProgressValue) transcriptProgressValue.textContent = detail;
+        if (transcriptProgressBar) transcriptProgressBar.style.width = stateName === 'waiting' ? '38%' : `${percent}%`;
+    }
+
+    function startTranscriptProgress() {
+        clearInterval(transcriptProgressTimer);
+        transcriptProgressStartedAt = Date.now();
+        setTranscriptProgress('正在发送整理请求…', 'active', '请求尚未返回', 18);
+        transcriptProgressTimer = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - transcriptProgressStartedAt) / 1000);
+            const segments = state.transcriptSegments;
+            if (segments && segments.total) {
+                const percent = Math.round((segments.completed / segments.total) * 100);
+                setTranscriptProgress(`模型分段实际完成：${segments.completed} / ${segments.total}`, 'active', `已等待 ${formatElapsed(elapsed)}`, percent);
+            } else {
+                setTranscriptProgress('正在等待模型服务确认任务…', 'waiting', `已等待 ${formatElapsed(elapsed)}`);
+            }
+        }, 1000);
+    }
+
+    function finishTranscriptProgress(success) {
+        clearInterval(transcriptProgressTimer);
+        const elapsed = transcriptProgressStartedAt ? Math.floor((Date.now() - transcriptProgressStartedAt) / 1000) : 0;
+        if (success) setTranscriptProgress('转写稿整理完成，可以继续核对和编辑。', 'complete', `耗时 ${formatElapsed(elapsed)}`, 100);
+        else setTranscriptProgress('整理未完成，请检查后重试。', 'failed', elapsed ? `已等待 ${formatElapsed(elapsed)}` : '', 100);
+    }
+
+    function cancelTranscriptProgress() {
+        clearInterval(transcriptProgressTimer);
+        const elapsed = transcriptProgressStartedAt ? Math.floor((Date.now() - transcriptProgressStartedAt) / 1000) : 0;
+        setTranscriptProgress('已停止整理，原始转写稿仍保留在上方。', 'failed', elapsed ? `已等待 ${formatElapsed(elapsed)}` : '', 0);
+    }
+
+    async function prepareTranscriptBySegments(formData, signal) {
+        const response = await fetch(`${API_BASE_URL}/prepare-transcript-stream`, { method: 'POST', body: formData, signal });
+        if (!response.ok) {
+            let detail = '';
+            try { detail = (await response.json()).detail || ''; } catch (_) { detail = await response.text(); }
+            throw new Error(detail || `转写整理失败（${response.status}）`);
+        }
+        if (!response.body) throw new Error('浏览器不支持读取实时整理进度。');
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let result = null;
+        const handleEvent = payload => {
+            if (payload.event === 'started') {
+                state.transcriptSegments = { total: payload.total, completed: 0 };
+                setTranscriptProgress(`已拆分为 ${payload.total} 段，正在提交模型处理…`, 'active', '已完成 0 段', 0);
+                transcriptFileStatus.textContent = `已按发言轮次拆分为 ${payload.total} 段，每批最多并发处理 ${payload.concurrency || 1} 段。`;
+            } else if (payload.event === 'segment_complete') {
+                state.transcriptSegments = { total: payload.total, completed: payload.completed };
+                const percent = Math.round((payload.completed / payload.total) * 100);
+                setTranscriptProgress(`模型已完成第 ${payload.index} 段`, 'active', `实际完成 ${payload.completed} / ${payload.total} 段`, percent);
+                transcriptFileStatus.textContent = `模型已返回第 ${payload.index} 段，正在等待其余分段。`;
+            } else if (payload.event === 'segment_failed' || payload.event === 'error') {
+                throw new Error(payload.detail || '部分转写分段处理失败。');
+            } else if (payload.event === 'result') {
+                result = payload.data;
+            }
+        };
+        while (true) {
+            const { value, done } = await reader.read();
+            buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+            const events = buffer.split('\n\n');
+            buffer = events.pop();
+            for (const event of events) {
+                const line = event.split('\n').find(value => value.startsWith('data: '));
+                if (line) handleEvent(JSON.parse(line.slice(6)));
+            }
+            if (done) break;
+        }
+        if (!result) throw new Error('模型未返回完整整理结果。');
+        return result;
+    }
+
+    function speakerIdFromName(name, index) {
+        return `speaker_${String(name || index).trim().replace(/\s+/g, '_') || index}`;
+    }
+
+    function parseNameText(value) {
+        return String(value || '').split(/[,，、\s]+/).map(item => item.trim()).filter(Boolean);
+    }
+
+    function clearPreparedTranscript() {
+        state.originalTranscript = '';
+        if (transcriptInput) transcriptInput.value = '';
+        if (preparedTranscriptWrap) preparedTranscriptWrap.classList.remove('visible');
+        state.detectedSpeakers = [];
+        syncSpeakerProfiles(parseNameText(reportersField && reportersField.value));
+    }
+
+    function renderTranscriptFileSelection() {
+        const file = state.transcriptFile;
+        if (transcriptSelectedFile) {
+            transcriptSelectedFile.style.display = file ? 'block' : 'none';
+            transcriptSelectedFile.textContent = file ? `📎 已选择转写文件：${file.name}` : '';
+        }
+        if (removeTranscriptFileBtn) removeTranscriptFileBtn.style.display = file ? 'inline-flex' : 'none';
+    }
+
+    function updateMaterialsAvailability() {
+        const reporterNames = parseNameText(reportersField && reportersField.value);
+        const isReady = state.reportersConfirmed && reporterNames.length > 0;
+        uploadArea.classList.toggle('is-locked', !isReady);
+        if (materialsGateStatus) {
+            materialsGateStatus.classList.toggle('ready', isReady);
+            materialsGateStatus.textContent = isReady
+                ? `已确认 ${reporterNames.length} 位汇报人，可以上传并逐人绑定材料。`
+                : '请先在左侧核对并点击“确认汇报人”，再上传材料。';
+        }
+        return isReady;
+    }
+
+    function applyMeetingSuggestions(suggestions) {
+        if (!suggestions || typeof suggestions !== 'object') return;
+        const typeSelect = document.getElementById('meetingTypeSelect');
+        const disciplineField = document.getElementById('disciplineInput');
+        if (meetingTime && !meetingTime.value.trim() && suggestions.time) meetingTime.value = suggestions.time;
+        if (typeSelect && !typeSelect.value && suggestions.meeting_type) {
+            typeSelect.value = suggestions.meeting_type;
+            typeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        if (disciplineField && !disciplineField.value.trim() && suggestions.discipline) disciplineField.value = suggestions.discipline;
+        if (participantsField && !participantsField.value.trim() && Array.isArray(suggestions.participants) && suggestions.participants.length) {
+            participantsField.value = suggestions.participants.join('，');
+        }
+        if (reportersField && !reportersField.value.trim() && Array.isArray(suggestions.reporters) && suggestions.reporters.length) {
+            reportersField.value = suggestions.reporters.join('，');
+            syncSpeakerProfiles(parseNameText(reportersField.value));
+        }
+    }
+
+    function syncSpeakerProfiles(reporterNames) {
+        const oldByKey = new Map();
+        state.speakerProfiles.forEach(profile => {
+            oldByKey.set(profile.name, profile);
+            if (profile.label) oldByKey.set(profile.label, profile);
+        });
+        const seeds = [];
+        const seen = new Set();
+        const confirmedNames = reporterNames || [];
+        const candidates = state.reportersConfirmed && confirmedNames.length
+            ? confirmedNames.map(name => ({ name }))
+            : [...state.detectedSpeakers, ...confirmedNames.map(name => ({ name }))];
+        candidates.forEach((item, index) => {
+            const name = String(item && item.name || '').trim();
+            const label = String(item && item.label || '').trim();
+            const key = label || name;
+            if (!name || seen.has(key)) return;
+            seen.add(key);
+            const old = oldByKey.get(key) || oldByKey.get(name);
+            seeds.push(old || { speaker_id: speakerIdFromName(label || name, index), name, label, materials: [] });
+        });
+        state.speakerProfiles = seeds;
+        renderSpeakerProfiles();
+    }
+
+    function applyDetectedSpeakers(speakers) {
+        state.detectedSpeakers = (Array.isArray(speakers) ? speakers : []).map(item => ({
+            label: String(item && item.label || '').trim(),
+            name: String(item && item.name || item && item.label || '').trim(),
+        })).filter(item => item.name);
+        const reporterNames = (reportersField && reportersField.value || '').split(/[,，、\s]+/).filter(Boolean);
+        syncSpeakerProfiles(reporterNames);
+    }
+
+    function applyPreparedTranscriptData(data, raw) {
+        state.originalTranscript = data.original_transcript || raw;
+        rawTranscriptInput.value = state.originalTranscript;
+        state.transcriptFile = null;
+        renderTranscriptFileSelection();
+        transcriptInput.value = data.cleaned_transcript || raw;
+        preparedTranscriptWrap.classList.add('visible');
+        applyDetectedSpeakers(data.speakers || []);
+        applyMeetingSuggestions(data.meeting_suggestions);
+        state.reportersConfirmed = false;
+        updateMaterialsAvailability();
+    }
+
+    function renderSpeakerProfiles() {
+        if (!speakerProfilesList) return;
+        if (!state.speakerProfiles.length) {
+            speakerProfilesList.textContent = '先整理转写稿，或在「汇报人」中填写姓名；随后可为每人绑定其 PPT、文献或 Word 材料。';
+            return;
+        }
+        speakerProfilesList.innerHTML = state.speakerProfiles.map((profile, index) => {
+            const selected = new Set(profile.materials || []);
+            const assignedFiles = state.files.filter(file => selected.has(file.name));
+            const assigned = assignedFiles.length
+                ? assignedFiles.map(file => `<div style="display:flex;align-items:center;gap:.35rem;margin-top:.25rem;font-size:.7rem;color:#475569;"><span>${getFileIcon(file)}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(file.name)}</span><button type="button" data-remove-speaker-material="${index}" data-file-name="${escapeHtml(file.name)}" style="border:0;background:transparent;color:#ef4444;cursor:pointer;font-size:.68rem;">移除</button></div>`).join('')
+                : '<div style="margin-top:.35rem;font-size:.7rem;color:#94a3b8;">尚未上传该汇报人的材料</div>';
+            return `<div style="margin-top:0.5rem;padding:0.5rem;border:1px solid #e2e8f0;border-radius:0.5rem;background:#fff;">
+                ${profile.label ? `<div style="font-size:0.67rem;color:#64748b;margin-bottom:0.26rem;">原始标签：${escapeHtml(profile.label)}</div>` : ''}
+                <input data-speaker-name="${index}" value="${escapeHtml(profile.name)}" aria-label="发言人姓名" style="width:100%;box-sizing:border-box;font-size:0.75rem;padding:0.32rem;border:1px solid #cbd5e1;border-radius:0.35rem;" />
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-top:.45rem;"><span style="font-size:.7rem;color:#64748b;">该汇报人的材料</span><button type="button" data-speaker-upload="${index}" class="btn btn-ghost" style="padding:.24rem .42rem;font-size:.68rem;">＋ 上传材料</button></div>
+                <input type="file" data-speaker-file="${index}" multiple accept=".ppt,.pptx,.pdf,.doc,.docx" style="display:none;" />
+                <div>${assigned}</div>
+            </div>`;
+        }).join('');
+    }
+
+    speakerProfilesList.addEventListener('input', (event) => {
+        const index = Number(event.target && event.target.dataset.speakerName);
+        if (!Number.isInteger(index) || !state.speakerProfiles[index]) return;
+        state.speakerProfiles[index].name = event.target.value.trim();
+    });
+    speakerProfilesList.addEventListener('click', (event) => {
+        const uploadBtn = event.target && event.target.closest('[data-speaker-upload]');
+        const removeBtn = event.target && event.target.closest('[data-remove-speaker-material]');
+        if (uploadBtn) {
+            if (!updateMaterialsAvailability()) { alert('请先在左侧核对并确认汇报人，再上传材料。'); return; }
+            const index = Number(uploadBtn.dataset.speakerUpload);
+            const input = speakerProfilesList.querySelector(`[data-speaker-file="${index}"]`);
+            if (input) input.click();
+        }
+        if (removeBtn) {
+            const index = Number(removeBtn.dataset.removeSpeakerMaterial);
+            const profile = state.speakerProfiles[index];
+            if (profile) {
+                profile.materials = (profile.materials || []).filter(name => name !== removeBtn.dataset.fileName);
+                refreshFileList();
+            }
+        }
+    });
+    speakerProfilesList.addEventListener('change', (event) => {
+        const index = Number(event.target && event.target.dataset.speakerFile);
+        if (!Number.isInteger(index) || !state.speakerProfiles[index]) return;
+        addMaterialFiles(Array.from(event.target.files || []), state.speakerProfiles[index]);
+        event.target.value = '';
+    });
+
+    selectTranscriptFileBtn.addEventListener('click', () => transcriptFileInput.click());
+    if (clearTranscriptTextBtn) clearTranscriptTextBtn.addEventListener('click', () => {
+        rawTranscriptInput.value = '';
+        state.transcriptFile = null;
+        clearPreparedTranscript();
+        renderTranscriptFileSelection();
+        transcriptFileStatus.classList.remove('ready');
+        transcriptFileStatus.textContent = '已清空转写文字和已整理结果。';
+        updateGenerateButton();
+    });
+    if (removeTranscriptFileBtn) removeTranscriptFileBtn.addEventListener('click', () => {
+        const name = state.transcriptFile && state.transcriptFile.name;
+        state.transcriptFile = null;
+        clearPreparedTranscript();
+        renderTranscriptFileSelection();
+        transcriptFileStatus.classList.remove('ready');
+        transcriptFileStatus.textContent = name ? `已移除 ${name}。` : '已移除转写文件。';
+        updateGenerateButton();
+    });
+    transcriptFileInput.addEventListener('change', async () => {
+        const file = transcriptFileInput.files && transcriptFileInput.files[0];
+        if (!file) return;
+        const name = file.name.toLowerCase();
+        if (name.endsWith('.txt')) {
+            state.transcriptFile = null;
+            rawTranscriptInput.value = await file.text();
+            rawTranscriptInput.dispatchEvent(new Event('input', { bubbles: true }));
+            transcriptFileStatus.textContent = `已导入 ${file.name}，请补充发言人说明后整理。`;
+        } else {
+            state.transcriptFile = file;
+            clearPreparedTranscript();
+            transcriptFileStatus.textContent = `已选择 ${file.name}，点击“整理为可读转写稿”后解析。`;
+            updateGenerateButton();
+        }
+        renderTranscriptFileSelection();
+        transcriptFileInput.value = '';
+    });
+    if (reportersField) reportersField.addEventListener('input', () => {
+        state.reportersConfirmed = false;
+        syncSpeakerProfiles(parseNameText(reportersField.value));
+        updateMaterialsAvailability();
+        if (reportersConfirmStatus) reportersConfirmStatus.textContent = '汇报人已修改，请再次确认后再绑定材料。';
+    });
+    if (confirmReportersBtn) confirmReportersBtn.addEventListener('click', () => {
+        const reporterNames = parseNameText(reportersField && reportersField.value);
+        if (!reporterNames.length) {
+            alert('请先填写至少一位汇报人；若 AI 未识别出来，可手动补充。');
+            return;
+        }
+        state.reportersConfirmed = true;
+        syncSpeakerProfiles(reporterNames);
+        updateMaterialsAvailability();
+        if (reportersConfirmStatus) reportersConfirmStatus.textContent = `已确认 ${reporterNames.join('、')}，请到右侧上传并绑定材料。`;
+    });
+    updateMaterialsAvailability();
+
+    rawTranscriptInput.addEventListener('input', () => {
+        state.originalTranscript = rawTranscriptInput.value.trim();
+        if (state.transcriptFile) {
+            state.transcriptFile = null;
+            renderTranscriptFileSelection();
+        }
+        if (transcriptInput.value.trim()) {
+            transcriptInput.value = '';
+            preparedTranscriptWrap.classList.remove('visible');
+            transcriptFileStatus.textContent = '原始转写已变更，请重新整理后再生成。';
+        }
+        updateGenerateButton();
+    });
+    transcriptInput.addEventListener('input', updateGenerateButton);
+    if (skipTranscriptPreparation) skipTranscriptPreparation.addEventListener('change', () => {
+        if (skipTranscriptPreparation.checked) {
+            transcriptFileStatus.classList.remove('ready');
+            transcriptFileStatus.textContent = '将跳过 AI 整理，直接使用原始转写生成纪要。请手动核对时间、参会人与汇报人。';
+        } else if (!transcriptInput.value.trim()) {
+            transcriptFileStatus.textContent = '请先整理原始转写稿，或选择直接使用原始转写。';
+        }
+        updateGenerateButton();
+    });
+
+    prepareTranscriptBtn.addEventListener('click', async () => {
+        const raw = rawTranscriptInput.value.trim();
+        if (!raw && !state.transcriptFile) {
+            alert('请先粘贴或导入一份原始语音转写稿。');
+            return;
+        }
+        if (state.isPreparingTranscript) return;
+        state.isPreparingTranscript = true;
+        state.transcriptAbortController = new AbortController();
+        state.transcriptSegments = null;
+        prepareTranscriptBtn.disabled = true;
+        prepareTranscriptBtn.textContent = '正在整理转写稿…';
+        if (cancelPrepareTranscriptBtn) {
+            cancelPrepareTranscriptBtn.disabled = false;
+            cancelPrepareTranscriptBtn.textContent = '停止整理';
+            cancelPrepareTranscriptBtn.style.display = 'inline-flex';
+        }
+        startTranscriptProgress();
+        transcriptFileStatus.classList.remove('ready');
+        transcriptFileStatus.textContent = '正在识别发言人标签、修复断句并保留不确定内容…';
+        const formData = new FormData();
+        formData.append('raw_transcript', raw);
+        formData.append('speaker_instruction', (speakerInstruction.value || '').trim());
+        if (state.transcriptFile) formData.append('transcript_file', state.transcriptFile);
+        try {
+            const data = await prepareTranscriptBySegments(formData, state.transcriptAbortController.signal);
+            applyPreparedTranscriptData(data, raw);
+            transcriptFileStatus.classList.add('ready');
+            transcriptFileStatus.textContent = `已整理转写稿，并识别到 ${(data.speakers || []).length} 位发言人；请继续核对会议信息和汇报人。`;
+            finishTranscriptProgress(true);
+        } catch (error) {
+            if (error && error.name === 'AbortError') {
+                transcriptFileStatus.textContent = '已停止整理。你可以修改说明后重新开始，原始转写稿不会丢失。';
+                cancelTranscriptProgress();
+            } else {
+                transcriptFileStatus.textContent = `整理失败：${error.message || '模型服务暂时没有成功回应，请稍后重试。'}`;
+                finishTranscriptProgress(false);
+            }
+        } finally {
+            state.isPreparingTranscript = false;
+            state.transcriptAbortController = null;
+            state.transcriptSegments = null;
+            prepareTranscriptBtn.disabled = false;
+            prepareTranscriptBtn.textContent = '✨ 整理为可读转写稿';
+            if (cancelPrepareTranscriptBtn) cancelPrepareTranscriptBtn.style.display = 'none';
+            updateGenerateButton();
+        }
+    });
+    if (cancelPrepareTranscriptBtn) cancelPrepareTranscriptBtn.addEventListener('click', () => {
+        if (!state.isPreparingTranscript || !state.transcriptAbortController) return;
+        cancelPrepareTranscriptBtn.disabled = true;
+        cancelPrepareTranscriptBtn.textContent = '正在停止…';
+        state.transcriptAbortController.abort();
+    });
+
+    const originalPaperHTML = paperContent ? paperContent.innerHTML : '';
+    const fontSelect = document.getElementById('fontSelect');
+    const fontSizeSelect = document.getElementById('fontSizeSelect');
+    const boldBtn = document.getElementById('boldBtn');
+    const italicBtn = document.getElementById('italicBtn');
+    const highlightBtn = document.getElementById('highlightBtn');
+    const toastSave = document.getElementById('toastSave');
+
+    // 点击上传区域 -> 打开文件选择框
+    uploadArea.addEventListener('click', () => {
+        if (!updateMaterialsAvailability()) {
+            alert('请先在左侧核对并确认汇报人，再上传材料。');
+            return;
+        }
+        fileInput.click();
+    });
+
+    // 原始 ASR 转写需要先经“整理转写稿”确认；已整理转写或材料可用于正式生成。
+    function updateGenerateButton() {
+        const hasFiles = state.files && state.files.length > 0;
+        const hasPreparedTranscript = transcriptInput && transcriptInput.value.trim().length > 0;
+        const hasRawTranscript = (rawTranscriptInput && rawTranscriptInput.value.trim().length > 0) || state.transcriptFile;
+        const isSkippingPreparation = !!(skipTranscriptPreparation && skipTranscriptPreparation.checked);
+        const hasTime = meetingTime && meetingTime.value.trim().length > 0;
+        let reason = '';
+        if (hasRawTranscript && !hasPreparedTranscript && !isSkippingPreparation) reason = '请先整理转写稿，或勾选“直接使用原始转写”';
+        else if (!hasTime) reason = '请先选择组会时间';
+        else if (!(hasFiles || hasPreparedTranscript || (isSkippingPreparation && hasRawTranscript))) reason = '请先上传材料或提供转写稿';
+        generateBtn.disabled = !!reason;
+        generateBtn.title = reason || '生成组会记录';
+        if (!state.isGenerating && !state.hasGenerated) {
+            generateBtn.textContent = reason ? `⚠ ${reason}` : '+ 生成组会记录';
+        }
+    }
+
+    transcriptInput.addEventListener('input', updateGenerateButton);
+    if (meetingTime) {
+        meetingTime.addEventListener('input', updateGenerateButton);
+        meetingTime.addEventListener('change', updateGenerateButton);
+    }
+
+    function renderOtherMaterialsUpload() {
+        const linked = new Set(state.speakerProfiles.flatMap(profile => profile.materials || []));
+        const otherCount = state.files.filter(file => !linked.has(file.name)).length;
+        if (otherCount) {
+            uploadArea.innerHTML = `<div style="color: var(--primary);">✅ 已添加 ${otherCount} 份其他材料 <span style="color: var(--text-sub); font-weight: normal;">（点击可继续添加）</span></div>`;
+        } else {
+            uploadArea.innerHTML = '<div style="font-size: 2rem; margin-bottom: 0.5rem;">📂</div><div style="font-size: 0.875rem; font-weight: 500;">上传其他材料</div><div style="font-size: 0.75rem; color: var(--text-sub); margin-top: 0.25rem;">会议共用或暂不归属个人的 PPT、PDF、Word</div>';
+        }
+    }
+
+    // 每次上传都只增加文件；若传入 profile，会立即绑定到该汇报人。
+    function addMaterialFiles(allFiles, profile = null) {
+        const audioExts = ['.mp3', '.wav', '.m4a'];
+        const files = allFiles.filter(f => !audioExts.some(ext => f.name.toLowerCase().endsWith(ext)));
+        if (allFiles.length > 0 && files.length < allFiles.length) {
+            console.warn('已忽略音频文件，请先使用外部工具转写为 TXT 或 DOCX 后导入。');
+        }
+        if (files.length) {
+            state.files = state.files.concat(files);
+            if (profile) {
+                const known = new Set(profile.materials || []);
+                files.forEach(file => known.add(file.name));
+                profile.materials = Array.from(known);
+            }
+        }
+        refreshFileList();
+        if (state.files.length > 0) {
+            updateGenerateButton();
+        } else {
+            updateGenerateButton();
+        }
+        renderOtherMaterialsUpload();
+    }
+
+    function formatTrialTime(date = new Date()) {
+        const pad = value => String(value).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    }
+
+    async function fetchTrialFile(asset) {
+        const response = await fetch(`${API_BASE_URL}/trial-case/assets/${encodeURIComponent(asset.id)}`);
+        if (!response.ok) throw new Error(`未能加载「${asset.filename}」`);
+        const blob = await response.blob();
+        return new File([blob], asset.filename, { type: blob.type || 'application/octet-stream' });
+    }
+
+    async function loadOfficialTrial() {
+        if (!loadTrialBtn) return;
+        loadTrialBtn.disabled = true;
+        loadTrialBtn.textContent = '正在加载试用材料…';
+        if (trialStatus) { trialStatus.style.display = 'block'; trialStatus.textContent = '正在从应用内置案例读取 PPT、PDF 和已转写的组会语音…'; }
+        try {
+            const manifestResponse = await fetch(`${API_BASE_URL}/trial-case`);
+            if (!manifestResponse.ok) throw new Error('试用案例配置读取失败，请确认后端已更新并启动。');
+            const trial = await manifestResponse.json();
+            const loaded = await Promise.all((trial.materials || []).map(async asset => ({ asset, file: await fetchTrialFile(asset) })));
+            const transcript = loaded.find(item => item.asset.role === 'transcript');
+            const materials = loaded.filter(item => item.asset.role === 'material').map(item => item.file);
+
+            state.files = [];
+            state.originalTranscript = '';
+            state.transcriptFile = transcript ? transcript.file : null;
+            state.reportersConfirmed = true;
+            state.hasGenerated = false;
+            rawTranscriptInput.value = '';
+            transcriptInput.value = '';
+            reportersField.value = (trial.reporters || []).join('、');
+            participantsField.value = (trial.participants || []).join('、');
+            const typeSelect = document.getElementById('meetingTypeSelect');
+            const disciplineField = document.getElementById('disciplineInput');
+            if (typeSelect) typeSelect.value = trial.meeting_type || '';
+            if (disciplineField) disciplineField.value = trial.discipline || '';
+            state.selectedMeetingType = trial.meeting_type || '';
+            state.selectedDiscipline = trial.discipline || '';
+            meetingTime.value = formatTrialTime();
+            if (skipTranscriptPreparation) skipTranscriptPreparation.checked = true;
+            syncSpeakerProfiles(trial.reporters || []);
+            renderTranscriptFileSelection();
+            renderSpeakerProfiles();
+            updateMaterialsAvailability();
+            addMaterialFiles(materials);
+            updateGenerateButton();
+            if (trialStatus) {
+                const caj = trial.reference_download;
+                const cajLink = caj ? `；原始 CAJ 可<a href="${API_BASE_URL}/trial-case/assets/${encodeURIComponent(caj.id)}" style="color:#1d4ed8;font-weight:600;">下载查看</a>` : '';
+                trialStatus.innerHTML = `已载入「${escapeHtml(trial.title || '官方试用案例')}」：${materials.length} 份材料 + 1 份转写。已自动填好人员与学科，可直接点击右上角“生成组会记录”${cajLink}。`;
+            }
+        } catch (error) {
+            if (trialStatus) { trialStatus.style.display = 'block'; trialStatus.textContent = `试用案例加载失败：${error.message || '请确认后端已启动'}`; }
+        } finally {
+            loadTrialBtn.disabled = false;
+            loadTrialBtn.textContent = '✨ 加载官方试用案例';
+        }
+    }
+
+    if (loadTrialBtn) loadTrialBtn.addEventListener('click', loadOfficialTrial);
+
+    // “其他材料”入口：文件不会绑定到任一汇报人。
+    fileInput.addEventListener('change', () => {
+        addMaterialFiles(Array.from(fileInput.files));
+        fileInput.value = '';
+    });
+
+    if (continueUploadBtn) {
+        continueUploadBtn.addEventListener('click', () => {
+            setGeneratedMode(false);
+            // 重置生成状态，确保点击「生成组会记录」能重新生成（避免上次请求挂起导致一直没反应）
+            state.isGenerating = false;
+            if (loadingOverlay) loadingOverlay.style.display = 'none';
+            if (generateBtn) {
+                generateBtn.textContent = '+ 生成组会记录';
+                updateGenerateButton();
+            }
+        });
+    }
+
+    function getFileIcon(file) {
+        const name = file.name.toLowerCase();
+        if (name.endsWith('.ppt') || name.endsWith('.pptx')) return '📊';
+        if (name.endsWith('.pdf')) return '📄';
+        if (name.endsWith('.doc') || name.endsWith('.docx')) return '📝';
+        return '📁';
+    }
+
+    generateBtn.addEventListener('click', () => {
+        if (state.isGenerating) return;
+        // 立即显示加载，避免“没反应”的错觉
+        loadingOverlay.style.display = 'flex';
+        loadingText.textContent = '正在准备...';
+        startGenerationWithAPI();
+    });
+    if (regenerateBtn) {
+        regenerateBtn.addEventListener('click', () => {
+            if (state.isGenerating) return;
+            startGenerationWithAPI();
+        });
+    }
+
+    function refreshFileList() {
+        fileList.innerHTML = '';
+        state.files.forEach((file, index) => {
+            const item = document.createElement('div');
+            item.className = 'file-item';
+            item.innerHTML = `
+                <span class="file-icon">${getFileIcon(file)}</span>
+                <span style="flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${file.name}</span>
+                <span class="file-remove" data-index="${index}" title="移除" style="cursor:pointer;color:#ef4444;font-size:0.75rem;padding:0 0.35rem;">移除</span>
+            `;
+            const removeBtn = item.querySelector('.file-remove');
+            removeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const removedName = state.files[index].name;
+                state.files.splice(index, 1);
+                state.speakerProfiles.forEach(profile => {
+                    profile.materials = (profile.materials || []).filter(name => name !== removedName);
+                });
+                refreshFileList();
+                updateGenerateButton();
+            });
+            fileList.appendChild(item);
+        });
+        renderSpeakerProfiles();
+        renderOtherMaterialsUpload();
+    }
+
+    function setGenerationProgress(percent, message) {
+        const value = Math.max(0, Math.min(100, Number(percent) || 0));
+        if (loadingText && message) loadingText.textContent = message;
+        if (generationProgressLabel && message) generationProgressLabel.textContent = message;
+        if (generationProgressValue) generationProgressValue.textContent = `${value}%`;
+        if (generationProgressBar) generationProgressBar.style.width = `${value}%`;
+    }
+
+    async function processMeetingWithProgress(formData) {
+        const response = await fetch(`${API_BASE_URL}/process-meeting-stream`, { method: 'POST', body: formData });
+        if (!response.ok || !response.body) {
+            let detail = '';
+            try { detail = (await response.json()).detail || ''; } catch (_) { detail = await response.text(); }
+            throw new Error(detail || `后端接口返回错误：${response.status}`);
+        }
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const events = buffer.split('\n\n');
+            buffer = events.pop() || '';
+            for (const event of events) {
+                const line = event.split('\n').find(value => value.startsWith('data: '));
+                if (!line) continue;
+                let payload;
+                try { payload = JSON.parse(line.slice(6)); } catch (_) { continue; }
+                if (payload.event === 'progress') setGenerationProgress(payload.percent, payload.message);
+                if (payload.event === 'error') throw new Error(payload.detail || '后端处理失败');
+                if (payload.event === 'result') return payload.data;
+            }
+        }
+        throw new Error('后端未返回生成结果');
+    }
+
+    async function startGenerationWithAPI() {
+        state.isGenerating = true;
+        generateBtn.disabled = true;
+        loadingOverlay.style.display = 'flex';
+        emptyState.style.display = 'none';
+        setGenerationProgress(1, '正在上传素材…');
+
+        const time = (meetingTime && meetingTime.value) ? meetingTime.value.trim() : '';
+
+        if (!time) {
+            alert('请先选择组会时间');
+            resetAfterCancel();
+            return;
+        }
+
+        const hasTranscript = (transcriptInput && transcriptInput.value && transcriptInput.value.trim()) || (transcriptSummary && transcriptSummary.value && transcriptSummary.value.trim());
+        const hasRawTranscript = (rawTranscriptInput && rawTranscriptInput.value && rawTranscriptInput.value.trim()) || state.transcriptFile;
+        const isSkippingPreparation = !!(skipTranscriptPreparation && skipTranscriptPreparation.checked);
+        const usableTranscript = hasTranscript || (isSkippingPreparation && hasRawTranscript);
+        if (hasRawTranscript && !hasTranscript && !isSkippingPreparation) {
+            alert('请先点击“整理为可读转写稿”，核对发言人后再生成纪要。');
+            resetAfterCancel();
+            return;
+        }
+        if (!usableTranscript && (!state.files || state.files.length === 0)) {
+            alert('请至少上传一份材料，或先整理一份会议转写稿后再生成。');
+            resetAfterCancel();
+            return;
+        }
+
+        const meetingTypeSelect = document.getElementById('meetingTypeSelect');
+        const disciplineInput = document.getElementById('disciplineInput');
+        const participantsInput = document.getElementById('participantsInput');
+        const reportersInput = document.getElementById('reportersInput');
+        function parseNameList(val) {
+            if (!val || typeof val !== 'string') return [];
+            return val.trim().split(/[,，、\s]+/).map(s => s.trim()).filter(Boolean);
+        }
+        const participantsList = parseNameList(participantsInput && participantsInput.value);
+        const reportersList = parseNameList(reportersInput && reportersInput.value);
+        const formData = new FormData();
+        formData.append('time', time);
+        formData.append('topic', '');
+        formData.append('roles', JSON.stringify(participantsList));
+        formData.append('reporters', JSON.stringify(reportersList));
+        formData.append('speaker_materials', JSON.stringify(state.speakerProfiles.map(profile => ({
+            speaker_id: profile.speaker_id,
+            name: profile.name,
+            materials: profile.materials || []
+        }))));
+        formData.append('meeting_type', (meetingTypeSelect && meetingTypeSelect.value) ? meetingTypeSelect.value : (state.selectedMeetingType || ''));
+        formData.append('discipline', (disciplineInput && disciplineInput.value) ? disciplineInput.value.trim() : (state.selectedDiscipline || ''));
+
+        formData.append('transcript', (transcriptInput && transcriptInput.value) || (transcriptSummary && transcriptSummary.value) || (isSkippingPreparation && rawTranscriptInput && rawTranscriptInput.value) || '');
+        formData.append('transcript_original', state.originalTranscript || (rawTranscriptInput && rawTranscriptInput.value) || '');
+        if (isSkippingPreparation && state.transcriptFile) formData.append('transcript_file', state.transcriptFile);
+
+        state.files.forEach(file => {
+            formData.append('files', file);
+        });
+
+        try {
+            const data = await processMeetingWithProgress(formData);
+            renderRecordFromData(data);
+            setGeneratedMode(true);
+            state.hasGenerated = true;
+            generateBtn.textContent = '✅ 生成完成';
+            if (exportMenuBtn) {
+                exportMenuBtn.disabled = false;
+            }
+        } catch (e) {
+            console.error(e);
+            alert('生成失败：' + (e && e.message ? e.message : '请检查后端是否启动、依赖是否安装及模型配置。'));
+            generateBtn.disabled = false;
+        } finally {
+            state.isGenerating = false;
+            loadingOverlay.style.display = 'none';
+        }
+    }
+
+    function resetAfterCancel() {
+        state.isGenerating = false;
+        loadingOverlay.style.display = 'none';
+        generateBtn.disabled = false;
+    }
+
+    function setupResizer(resizer, side) {
+        if (!resizer) return;
+        resizer.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            isResizing = true;
+            resizeTarget = side;
+            startX = e.clientX;
+            const styles = window.getComputedStyle(mainLayout);
+            const cols = styles.gridTemplateColumns.split(' ');
+            const left = parseFloat(cols[0]);
+            const right = parseFloat(cols[4]);
+            startWidthLeft = left;
+            startWidthRight = right;
+            document.body.style.userSelect = 'none';
+        });
+    }
+
+    setupResizer(resizerLeft, 'left');
+    setupResizer(resizerRight, 'right');
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isResizing) return;
+        const dx = e.clientX - startX;
+        const minWidth = 160;
+        const maxWidth = 600;
+        if (resizeTarget === 'left') {
+            let newLeft = startWidthLeft + dx;
+            newLeft = Math.max(minWidth, Math.min(maxWidth, newLeft));
+            document.documentElement.style.setProperty('--col-left', newLeft + 'px');
+        } else if (resizeTarget === 'right') {
+            let newRight = startWidthRight - dx;
+            newRight = Math.max(minWidth, Math.min(maxWidth, newRight));
+            document.documentElement.style.setProperty('--col-right', newRight + 'px');
+        }
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (!isResizing) return;
+        isResizing = false;
+        resizeTarget = null;
+        document.body.style.userSelect = '';
+    });
+
+    function renderRecordFromData(data) {
+        currentRecord = data;
+        let html = '';
+        // 用「来源文件 + 页码/位置」生成全局稳定的引用编号，避免每条要点都从 [1] 重新开始。
+        const citationEntries = [];
+        const citationNumbers = new Map();
+        const registerCitation = (ev) => {
+            if (!ev || typeof ev !== 'object') return null;
+            const source = ev.source_name || ev.location || ev.type || '来源材料';
+            const key = [ev.type || '', ev.source_id || '', source, ev.page || '', ev.location || ''].join('|');
+            if (!citationNumbers.has(key)) {
+                citationNumbers.set(key, citationEntries.length + 1);
+                citationEntries.push({ number: citationEntries.length + 1, source, page: ev.page, location: ev.location, quote: ev.quote || ev.context || '' });
+            }
+            return citationNumbers.get(key);
+        };
+        const citationMark = (evidence) => {
+            if (!Array.isArray(evidence) || !evidence.length) return '';
+            const numbers = evidence.slice(0, 3).map(registerCitation).filter(Boolean);
+            return numbers.length ? `<sup style="margin-left:.25rem;font-size:.72rem;">${numbers.map(number => `<a class="citation-mark" href="#citation-ref-${number}" title="查看引用来源">[${number}]</a>`).join('')}</sup>` : '';
+        };
+
+        const TYPE_BADGE = {
+            '人文社科': { emoji: '👤', color: '#6d28d9', bg: '#ede9fe' },
+            '实验工科': { emoji: '🔬', color: '#0369a1', bg: '#e0f2fe' },
+            '理论数理': { emoji: '📐', color: '#b45309', bg: '#fef3c7' },
+            '通用组会': { emoji: '📋', color: '#374151', bg: '#f3f4f6' },
+        };
+        const displayLabel = (data.user_selected_meeting_type || data.user_selected_discipline || data.meeting_type || '').trim();
+        const meetingType = (data.user_selected_meeting_type || data.meeting_type || '').trim();
+        const badge = TYPE_BADGE[meetingType] || { emoji: '🎓', color: '#374151', bg: '#f3f4f6' };
+        const typeBadgeHtml = displayLabel
+            ? `<span style="display:inline-flex;align-items:center;gap:0.35rem;font-size:0.8rem;font-weight:600;
+                            padding:0.35rem 0.75rem;border-radius:999px;
+                            background:${badge.bg};color:${badge.color};margin-bottom:0.75rem;">
+                   ${badge.emoji} ${displayLabel}
+               </span>`
+            : '';
+
+        const rolesDisplay = (data.basic_info?.roles || []).filter(Boolean).join('、') || '';
+        html += `
+            <div class="record-header content-block">
+                <div class="block-title" style="font-size:0.8rem;color:var(--text-sub);margin-bottom:0.5rem;">一、组会基础信息</div>
+                ${typeBadgeHtml}
+                <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin-bottom: 0; line-height: 1.4;">${data.basic_info?.topic || '组会记录'}</h1>
+                <div class="record-meta">
+                    <div class="meta-row"><span class="meta-label">会议时间</span><span>${data.basic_info?.time || ''}</span></div>
+                    <div class="meta-row"><span class="meta-label">参与人</span><span>${rolesDisplay || '—'}</span></div>
+                </div>
+            </div>
+        `;
+
+        const SECTION_TITLE = {
+            '人文社科': '论文讨论要点',
+            '实验工科': '实验汇报要点',
+            '理论数理': '理论推进要点',
+            '通用组会': '本次组会要点',
+        };
+        const sectionTitleLabel = SECTION_TITLE[meetingType] || '核心讨论要点';
+
+        const byReporter = (data.by_reporter || []).filter(b => b);
+        const hasByReporterContent = byReporter.some(b => (b.key_points && b.key_points.length) || (b.action_items && b.action_items.length) || (b.advisor_feedback && b.advisor_feedback.length));
+        const hasFlatContent = (data.key_points && data.key_points.length) || (data.advisor_feedback && data.advisor_feedback.length) || (data.action_items && data.action_items.length);
+
+        if (byReporter.length > 0) {
+            html += `<div class="content-block section-heading-block"><div class="block-title">二、核心讨论要点</div></div>`;
+            byReporter.forEach((block, repIdx) => {
+                const repName = block.reporter || '汇报人';
+                const kpList = block.key_points || [];
+                html += `<div class="content-block"><div class="block-title" style="font-size:0.9rem;color:#475569;">${repName}</div>`;
+                if (kpList.length > 0) {
+                    html += `<ul style="padding-left: 1.5rem; line-height: 1.8; color: #334155;">`;
+                    kpList.forEach((kp, idx) => {
+                        const hasEv = kp.evidence && kp.evidence.length;
+                        const traceAttrs = hasEv
+                            ? ` class="trace-target" data-trace-type="by" data-reporter-index="${repIdx}" data-section="key_points" data-item-index="${idx}"`
+                            : '';
+                        const isEmptyPlaceholder = (kp.title || '').indexOf('未识别到该汇报人') !== -1;
+                        html += `<li${traceAttrs} style="margin-bottom: 0.75rem; padding: 0.2rem 0.35rem;${isEmptyPlaceholder ? ' color:#94a3b8; font-style:italic;' : ''}"><strong>${kp.title || ''}</strong>${kp.detail || ''}${citationMark(kp.evidence)}</li>`;
+                    });
+                    html += `</ul>`;
+                } else {
+                    html += `<p style="color:#94a3b8; font-size:0.875rem; font-style:italic; margin:0.5rem 0;">（未识别到该汇报人相关内容）</p>`;
+                }
+                html += `</div>`;
+            });
+            html += `<div class="content-block section-heading-block"><div class="block-title">三、导师反馈与行动项</div></div>`;
+            byReporter.forEach((block, repIdx) => {
+                const repName = block.reporter || '汇报人';
+                const hasFb = (block.advisor_feedback || []).length > 0;
+                const hasAi = (block.action_items || []).length > 0;
+                html += `<div class="content-block"><div class="block-title" style="font-size:0.9rem;color:#475569;">${repName}</div>`;
+                if (hasFb) {
+                    block.advisor_feedback.forEach((fb, fbIdx) => {
+                        const hasEv = fb.evidence && fb.evidence.length;
+                        const traceAttrs = hasEv
+                            ? ` class="trace-target" data-trace-type="by" data-reporter-index="${repIdx}" data-section="advisor_feedback" data-item-index="${fbIdx}"`
+                            : '';
+                        html += `<p${traceAttrs} style="margin-bottom: 0.5rem; padding: 0.2rem 0.35rem;"><strong>${fb.speaker || '导师'}：</strong>${fb.content || ''}${citationMark(fb.evidence)}</p>`;
+                    });
+                }
+                if (hasAi) {
+                    block.action_items.forEach((item, idx) => {
+                        let levelText = item.level === 'RED' ? '🔴 必须修改' : item.level === 'YELLOW' ? '🟡 建议性意见' : item.level === 'GREEN' ? '🟢 探索性讨论' : (item.level || '');
+                        const hasEv = item.evidence && item.evidence.length;
+                        const traceAttrs = hasEv
+                            ? ` class="action-item trace-target" data-trace-type="by" data-reporter-index="${repIdx}" data-section="action_items" data-item-index="${idx}"`
+                            : ` class="action-item"`;
+                        html += `<div${traceAttrs} style="margin-bottom: 0.75rem; padding: 0.35rem 0.4rem;"><div style="margin-bottom: 0.5rem;"><span>${levelText}</span></div><p style="font-size: 0.9rem; margin-bottom: 0.5rem;">${item.description || ''}${citationMark(item.evidence)}</p><div style="font-size:0.75rem;color:#475569;margin-bottom:0.3rem;">负责人：${item.owner || '待确认'}　截止：${item.due || '未明确'}</div><div style="font-size:0.75rem;color:#64748b;">判定理由：${item.reason || ''}${item.risk ? `　风险/依赖：${item.risk}` : ''}</div></div>`;
+                    });
+                }
+                if (!hasFb && !hasAi) {
+                    html += `<p style="color:#94a3b8; font-size:0.875rem; font-style:italic; margin:0.5rem 0;">（未识别到该汇报人相关内容）</p>`;
+                }
+                html += `</div>`;
+            });
+            html += `<div class="content-block"><div class="block-title">四、总结</div><p>${data.summary || ''}</p></div>`;
+        } else {
+            if (!hasFlatContent) {
+                html += `<div class="content-block" style="background:#fef3c7;padding:0.75rem 1rem;border-radius:0.5rem;margin-bottom:1rem;font-size:0.875rem;color:#92400e;">未识别到分条要点与行动项。请确认已上传完整语音转写、PPT 与文献，或重试生成。</div>`;
+            }
+            html += `<div class="content-block section-heading-block"><div class="block-title">二、${sectionTitleLabel}</div><ul style="padding-left: 1.5rem; line-height: 1.8; color: #334155;">`;
+            (data.key_points || []).forEach((kp, index) => {
+                const hasEv = kp.evidence && kp.evidence.length;
+                const traceAttrs = hasEv
+                    ? ` class="trace-target" data-trace-type="flat" data-section="key_points" data-item-index="${index}"`
+                    : '';
+                html += `<li${traceAttrs} style="margin-bottom: 0.75rem; padding: 0.2rem 0.35rem;"><strong>${kp.title}</strong>${kp.detail}</li>`;
+            });
+            html += `</ul></div>`;
+
+            html += `<div class="content-block section-heading-block"><div class="block-title">三、导师反馈与行动项</div>`;
+            html += `<div class="content-block"><div class="block-title" style="font-size:0.9rem;color:#475569;">导师反馈</div>`;
+            (data.advisor_feedback || []).forEach((fb, index) => {
+                const hasEv = fb.evidence && fb.evidence.length;
+                const traceAttrs = hasEv
+                    ? ` class="trace-target" data-trace-type="flat" data-section="advisor_feedback" data-item-index="${index}"`
+                    : '';
+                html += `<p${traceAttrs} style="margin-bottom: 0.5rem; padding: 0.2rem 0.35rem;"><strong>${fb.speaker}：</strong>${fb.content}</p>`;
+            });
+            html += `<div class="block-title" style="font-size:0.9rem;color:#475569;margin-top:0.75rem;">行动项</div>`;
+            (data.action_items || []).forEach((item, index) => {
+                let levelText = item.level || '';
+                if (item.level === 'RED') levelText = '🔴 必须修改';
+                if (item.level === 'YELLOW') levelText = '🟡 建议性意见';
+                if (item.level === 'GREEN') levelText = '🟢 探索性讨论';
+                const hasEv = item.evidence && item.evidence.length;
+                const traceAttrs = hasEv
+                    ? ` class="action-item trace-target" data-trace-type="flat" data-section="action_items" data-item-index="${index}"`
+                    : ` class="action-item"`;
+                html += `<div${traceAttrs} style="margin-bottom: 0.75rem; padding: 0.35rem 0.4rem;"><div style="margin-bottom: 0.5rem;"><span>${levelText}</span></div><p style="font-size: 0.9rem; margin-bottom: 0.5rem;">${item.description}</p><div style="font-size:0.75rem;color:#475569;margin-bottom:0.3rem;">负责人：${item.owner || '待确认'}　截止：${item.due || '未明确'}</div><div style="font-size: 0.75rem; color: #64748b;">判定理由：${item.reason || ''}${item.risk ? `　风险/依赖：${item.risk}` : ''}</div></div>`;
+            });
+            html += `</div>`;
+
+            html += `<div class="content-block"><div class="block-title">四、总结</div><p>${data.summary || ''}</p></div>`;
+        }
+
+        const glossary = data.term_glossary || [];
+        const transfers = data.innovation_transfers || [];
+        const progress = data.student_progress || [];
+        const questions = data.socratic_questions || [];
+        if (data.mentor_brief || glossary.length || transfers.length || progress.length || questions.length) {
+            html += `<div class="content-block"><div class="block-title">五、专属视角与下一步启发</div><div class="insight-grid">`;
+            if (data.mentor_brief) html += `<div class="insight-card"><strong>导师摘要</strong><div style="margin-top:.35rem;">${escapeHtml(data.mentor_brief)}</div></div>`;
+            if (progress.length) html += `<div class="insight-card"><strong>学生本场轨迹</strong>${progress.map(item => `<div style="margin-top:.35rem;"><b>${escapeHtml(item.student || '汇报人')}</b>：${escapeHtml(item.progress || '')}<br><span style="color:#2563eb;">下次聚焦：${escapeHtml(item.next_focus || '')}</span></div>`).join('')}</div>`;
+            if (questions.length) html += `<div class="insight-card"><strong>苏格拉底追问</strong>${questions.map(item => `<div style="margin-top:.35rem;"><b>问：</b>${escapeHtml(item.question || '')}<br><span style="color:#64748b;">为何问：${escapeHtml(item.why || '')}　→ ${escapeHtml(item.target || '待回答')}</span></div>`).join('')}</div>`;
+            html += `</div>`;
+            if (glossary.length) html += `<div style="margin-top:.75rem;"><strong style="font-size:.85rem;">术语悬浮解释</strong><div style="margin-top:.25rem;">${glossary.map(item => `<span class="term-chip" tabindex="0" data-tooltip="${escapeHtml(item.explanation || '')}">${escapeHtml(item.term || '')}</span>`).join('')}</div></div>`;
+            if (transfers.length) html += `<div style="margin-top:.75rem;"><strong style="font-size:.85rem;">创新点迁移（均为待验证启发）</strong>${transfers.map(item => `<div class="insight-card" style="margin-top:.4rem;"><b>${escapeHtml(item.source_domain || '原领域')} → ${escapeHtml(item.target_domain || '本研究')}</b><br>${escapeHtml(item.transferable_idea || '')}<br><span style="color:#2563eb;">可尝试：${escapeHtml(item.application || '')}</span><br><span style="color:#b45309;">边界：${escapeHtml(item.caution || '')}</span>${citationMark(item.evidence)}</div>`).join('')}</div>`;
+            html += `</div>`;
+        }
+
+        if (citationEntries.length) {
+            html += `<div class="content-block"><div class="block-title">参考来源</div><ol style="padding-left:1.35rem;margin:0;font-size:.78rem;color:#475569;">${citationEntries.map(entry => `<li id="citation-ref-${entry.number}" style="margin:.3rem 0;"><strong>${escapeHtml(entry.source)}</strong>${entry.page ? `，第 ${escapeHtml(entry.page)} 页` : ''}${entry.location ? `，${escapeHtml(entry.location)}` : ''}${entry.quote ? `：${escapeHtml(String(entry.quote).slice(0, 90))}` : ''}</li>`).join('')}</ol></div>`;
+        }
+
+        if (!recordContent) {
+            paperContent.innerHTML = html;
+            paperContent.setAttribute('contenteditable', 'true');
+        } else {
+            emptyState.style.display = 'none';
+            let body = getRecordBody();
+            if (!body) {
+                body = document.createElement('div');
+                body.id = 'generatedRecord';
+                body.addEventListener('input', () => { pushUndoState(); scheduleAutosave(); });
+                body.addEventListener('focus', () => { lastContentForUndo = body.innerHTML; });
+                recordContent.appendChild(body);
+            }
+            body.innerHTML = html;
+            body.setAttribute('contenteditable', 'true');
+        }
+        initialHTML = html;
+        lastGeneratedHTML = html;
+        savedHTML = html;
+        undoHistory.length = 0;
+        lastContentForUndo = html;
+        if (editorToolbar) {
+            editorToolbar.classList.add('visible');
+        }
+        if (undoBtn) undoBtn.disabled = true;
+
+        const blocks = (getRecordBody() || paperContent).querySelectorAll('.content-block');
+        blocks.forEach((block, index) => {
+            setTimeout(() => {
+                block.classList.add('visible');
+            }, index * 200);
+        });
+        bindTraceHover();
+    }
+
+    let lastContentForUndo = '';
+
+    function scheduleAutosave() {
+        if (!state.hasGenerated) return;
+        const body = getRecordBody() || paperContent;
+        if (!body) return;
+        if (autosaveTimer) clearTimeout(autosaveTimer);
+        autosaveTimer = setTimeout(() => { savedHTML = body.innerHTML; }, 800);
+    }
+
+    function pushUndoState() {
+        const body = getRecordBody() || paperContent;
+        if (!state.hasGenerated || !body) return;
+        const current = body.innerHTML;
+        if (lastContentForUndo && lastContentForUndo !== current) {
+            undoHistory.push(lastContentForUndo);
+            if (undoHistory.length > UNDO_MAX) undoHistory.shift();
+            if (undoBtn) undoBtn.disabled = false;
+        }
+        lastContentForUndo = current;
+    }
+
+    const editableContainer = () => getRecordBody() || paperContent;
+    if (paperContent) {
+        paperContent.addEventListener('input', () => {
+            pushUndoState();
+            scheduleAutosave();
+        });
+        paperContent.addEventListener('focus', () => { const b = editableContainer(); if (b) lastContentForUndo = b.innerHTML; });
+    }
+
+    if (saveBtn) {
+        saveBtn.addEventListener('click', () => {
+            if (!state.hasGenerated) return;
+            const body = editableContainer();
+            if (body) { savedHTML = body.innerHTML; lastContentForUndo = savedHTML; }
+            if (toastSave) {
+                toastSave.classList.add('show');
+                setTimeout(() => toastSave.classList.remove('show'), 1500);
+            }
+        });
+    }
+
+    if (undoBtn) {
+        undoBtn.addEventListener('click', () => {
+            const body = editableContainer();
+            if (!body) return;
+            if (undoHistory.length > 0) {
+                const prev = undoHistory.pop();
+                body.innerHTML = prev;
+                lastContentForUndo = prev;
+            } else {
+                const target = savedHTML || lastGeneratedHTML || initialHTML;
+                if (target) {
+                    body.innerHTML = target;
+                    lastContentForUndo = target;
+                }
+            }
+            undoBtn.disabled = undoHistory.length === 0;
+        });
+    }
+
+    document.addEventListener('keydown', (e) => {
+        const body = editableContainer();
+        const focusIn = body && (document.activeElement === body || body.contains(document.activeElement));
+        if (e.ctrlKey && e.key === 'z' && focusIn) {
+            e.preventDefault();
+            if (undoBtn) undoBtn.click();
+        }
+    });
+
+    function applyFormat(cmd, value) {
+        const body = editableContainer();
+        if (!body || !state.hasGenerated) return;
+        body.focus();
+        document.execCommand(cmd, false, value || null);
+        body.focus();
+    }
+
+    if (fontSelect) {
+        fontSelect.addEventListener('change', function () {
+            const v = this.value;
+            if (v && v !== 'inherit') applyFormat('fontName', v);
+        });
+    }
+    if (fontSizeSelect) {
+        fontSizeSelect.addEventListener('change', function () {
+            const v = this.value;
+            if (v) applyFormat('fontSize', v);
+        });
+    }
+    if (boldBtn) {
+        boldBtn.addEventListener('click', () => {
+            applyFormat('bold');
+            boldBtn.classList.toggle('active', document.queryCommandState('bold'));
+        });
+    }
+    if (italicBtn) {
+        italicBtn.addEventListener('click', () => {
+            applyFormat('italic');
+            italicBtn.classList.toggle('active', document.queryCommandState('italic'));
+        });
+    }
+    if (highlightBtn) {
+        highlightBtn.addEventListener('click', () => {
+            applyFormat('backColor', '#fef08a');
+        });
+    }
+    if (paperContent) {
+        paperContent.addEventListener('selectionchange', () => {
+            if (boldBtn) boldBtn.classList.toggle('active', document.queryCommandState('bold'));
+            if (italicBtn) italicBtn.classList.toggle('active', document.queryCommandState('italic'));
+        });
+    }
+
+    function getCleanContentForExport() {
+        const div = document.createElement('div');
+        const body = getRecordBody() || paperContent;
+        div.innerHTML = body ? body.innerHTML : '';
+        div.querySelectorAll('button').forEach(btn => btn.remove());
+        return div.innerHTML;
+    }
+
+    function buildExportHtml() {
+        const style = `
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.8; color: #0f172a; padding: 40px 48px; }
+                h1 { font-size: 24px; margin: 0 0 8px 0; }
+                .record-meta { font-size: 12px; color: #64748b; margin-bottom: 24px; }
+                .block-title { font-size: 18px; font-weight: 700; margin: 24px 0 12px; color: #111827; }
+                .action-item { background: #f1f5f9; border-left: 4px solid #2563eb; padding: 10px 14px; margin-bottom: 8px; }
+                ul { padding-left: 20px; }
+                p { margin: 6px 0; font-size: 14px; }
+            </style>
+        `;
+        return '<html><head><meta charset="UTF-8"><title>组会纪要</title>' + style + '</head><body>' + getCleanContentForExport() + '</body></html>';
+    }
+
+    function buildWordHtml() {
+        const clean = getCleanContentForExport();
+        const style = `
+            <meta charset="UTF-8">
+            <meta name="ProgId" content="Word.Document">
+            <meta name="Generator" content="研行记">
+            <style>
+                @page { margin: 2cm; }
+                body {
+                    font-family: "宋体", SimSun, serif;
+                    font-size: 12pt;
+                    line-height: 1.75;
+                    color: #000;
+                    margin: 0;
+                    padding: 24pt 28pt;
+                }
+                .record-header { margin-bottom: 24pt; padding-bottom: 12pt; border-bottom: 1pt solid #ddd; }
+                .record-header h1 {
+                    font-family: "黑体", SimHei, sans-serif;
+                    font-size: 18pt;
+                    font-weight: bold;
+                    margin: 0 0 8pt 0;
+                    color: #000;
+                }
+                .record-meta {
+                    font-size: 10.5pt;
+                    color: #666;
+                    margin-top: 6pt;
+                }
+                .content-block { margin-bottom: 20pt; }
+                .block-title {
+                    font-family: "黑体", SimHei, sans-serif;
+                    font-size: 14pt;
+                    font-weight: bold;
+                    margin: 16pt 0 10pt 0;
+                    color: #000;
+                    padding-left: 8pt;
+                    border-left: 3pt solid #2563eb;
+                }
+                .content-block ul { padding-left: 24pt; margin: 8pt 0; }
+                .content-block li { margin-bottom: 8pt; }
+                .content-block p { margin: 6pt 0; font-size: 12pt; }
+                .action-item {
+                    background: #f8fafc;
+                    border-left: 4pt solid #2563eb;
+                    padding: 10pt 12pt;
+                    margin-bottom: 10pt;
+                }
+                .action-item p { margin: 4pt 0; }
+            </style>
+        `;
+        return '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">' +
+            '<head><title>组会纪要</title>' + style + '</head><body>' + clean + '</body></html>';
+    }
+
+    if (exportMenuBtn && exportMenu && exportPdfAction && exportWordAction) {
+        exportMenuBtn.addEventListener('click', () => {
+            if (!state.hasGenerated) return;
+            const isOpen = exportMenu.style.display === 'block';
+            exportMenu.style.display = isOpen ? 'none' : 'block';
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!exportMenuBtn || !exportMenu) return;
+            if (exportMenu.contains(e.target) || exportMenuBtn.contains(e.target)) return;
+            exportMenu.style.display = 'none';
+        });
+
+        exportPdfAction.addEventListener('click', () => {
+            if (!state.hasGenerated) return;
+            const w = window.open('', '_blank');
+            if (!w) {
+                alert('浏览器阻止了弹窗，请允许弹窗后重试导出 PDF');
+                return;
+            }
+            w.document.write(buildExportHtml());
+            w.document.close();
+            w.focus();
+            w.print();
+            exportMenu.style.display = 'none';
+        });
+
+        exportWordAction.addEventListener('click', () => {
+            if (!state.hasGenerated) return;
+            const content = buildWordHtml();
+            const blob = new Blob(['\ufeff' + content], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '组会纪要.doc';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            exportMenu.style.display = 'none';
+        });
+    }
+
+    function escapeHtml(s) {
+        if (!s) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function parsePptPageTextMap(pptText) {
+        const map = {};
+        const t = pptText || '';
+        if (!t) return map;
+        const parts = t.split(/\[PPT 第(\d+)页\]/);
+        for (let i = 1; i < parts.length; i += 2) {
+            const pageNum = parseInt(parts[i], 10) || ((i + 1) / 2);
+            const body = (parts[i + 1] || '').trim();
+            if (pageNum) map[pageNum] = body;
+        }
+        return map;
+    }
+
+    function extractPptPagesFromItem(item, raw) {
+        const evidence = (item && item.evidence) ? item.evidence : [];
+        const pages = [];
+        const pushPage = (p) => {
+            if (!p || pages.includes(p)) return;
+            pages.push(p);
+        };
+        evidence.forEach(ev => {
+            if (!ev || ev.type !== 'ppt') return;
+            const loc = String(ev.location || '');
+            const m = loc.match(/PPT\s*第\s*(\d+)\s*页/);
+            if (m) pushPage(parseInt(m[1], 10));
+        });
+
+        // 若没有显式页码，则用 quote 在 ppt_text 中做一次兜底匹配
+        if (!pages.length) {
+            const pageTextMap = parsePptPageTextMap((raw || {}).ppt_text || '');
+            evidence.forEach(ev => {
+                if (!ev || ev.type !== 'ppt') return;
+                const quote = String(ev.quote || '').trim();
+                if (!quote) return;
+                Object.keys(pageTextMap).forEach(k => {
+                    const pageNum = parseInt(k, 10);
+                    if ((pageTextMap[pageNum] || '').includes(quote)) pushPage(pageNum);
+                });
+            });
+        }
+        return pages.slice(0, 2); // 只显示前 1~2 页
+    }
+
+    function buildPptTraceCard(pageNum, raw, evidence = null) {
+        const slides = (raw.ppt_slides || []);
+        const slide = slides.find(s => (s.page || 0) === pageNum);
+        const pageTextMap = parsePptPageTextMap(raw.ppt_text || '');
+        const text = (pageTextMap[pageNum] || '').trim();
+        const textSnippet = text ? escapeHtml(text.slice(0, 160)) + (text.length > 160 ? '...' : '') : '该页暂无可提取文本';
+        const img = slide && slide.images && slide.images.length ? slide.images[0] : '';
+        const openBtn = img
+            ? `<a href="${img}" target="_blank" rel="noopener" style="font-size:0.72rem;color:#2563eb;text-decoration:none;">点击查看该页大图 ↗</a>`
+            : `<span style="font-size:0.72rem;color:#94a3b8;">未生成整页截图（可安装 LibreOffice）</span>`;
+        const imgHtml = img
+            ? `<img src="${img}" alt="PPT第${pageNum}页" style="width:100%;border-radius:0.5rem;border:1px solid #e2e8f0;margin-bottom:0.5rem;">`
+            : '';
+        const sourceId = slide && slide.source_id ? String(slide.source_id) : '';
+        const sourceName = slide && slide.source_name ? String(slide.source_name) : 'PPT';
+        const pageCount = sourceId ? slides.filter(item => item && item.source_id === sourceId).length : 0;
+        const asset = currentRecord && (currentRecord.archived_assets || []).find(item => item && item.name === sourceName && item.type === 'ppt');
+        const originalUrl = asset && currentRecord && currentRecord.library_meeting_id
+            ? `${API_BASE_URL}/library/assets/${encodeURIComponent(currentRecord.library_meeting_id)}/${encodeURIComponent(asset.id)}` : '';
+        const quote = evidence && evidence.quote ? escapeHtml(String(evidence.quote)) : '';
+        const deckControls = sourceId ? `<div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-top:.35rem;"><button type="button" data-ppt-preview-all="${escapeHtml(sourceId)}" data-ppt-focus-page="${pageNum}" data-ppt-quote="${quote}" style="padding:0;border:0;background:transparent;color:#2563eb;font-size:.72rem;cursor:pointer;">浏览整份 PPT（${pageCount} 页）</button>${originalUrl ? `<a href="${originalUrl}" target="_blank" rel="noopener" style="color:#047857;font-size:.72rem;text-decoration:none;">打开 PPT 原件 ↗</a>` : ''}</div>` : '';
+        return `
+            <div style="border:1px solid #dbeafe;border-radius:0.65rem;padding:0.6rem;margin-bottom:0.65rem;background:#f8fbff;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+                    <strong style="font-size:0.82rem;color:#1d4ed8;">PPT 第${pageNum}页</strong>
+                    ${openBtn}
+                </div>
+                ${imgHtml}
+                <div style="font-size:0.76rem;color:#334155;line-height:1.5;">${textSnippet}</div>
+                ${deckControls}
+            </div>
+        `;
+    }
+
+    function showSourceFallback() {
+        previewTitle.textContent = '素材溯源';
+        if (previewMeta) previewMeta.textContent = '该条暂无溯源';
+        previewContent.style.alignItems = 'flex-start';
+        previewContent.style.justifyContent = 'flex-start';
+        previewContent.style.background = '#ffffff';
+        previewContent.classList.add('preview-content-scroll');
+        previewContent.innerHTML = `
+            <div class="preview-content-inner" style="width:100%;padding:0.85rem;box-sizing:border-box;">
+                <div style="padding:0.75rem;border-radius:0.6rem;background:#f8fafc;border:1px solid #e2e8f0;color:#64748b;font-size:0.8rem;line-height:1.6;">
+                    <div style="font-weight:600;color:#334155;margin-bottom:0.35rem;">无溯源内容</div>
+                    当前这句话/要点暂无对应出处。
+                </div>
+            </div>
+        `;
+    }
+
+    /** 在完整转写原文中高亮 evidence 的 quote；精确匹配失败时尝试多段子串（前 80/60/45/30/20 字或后段），提高命中率 */
+    function buildFullTranscriptWithHighlights(fullTranscript, transcriptEvidences) {
+        if (!fullTranscript || typeof fullTranscript !== 'string') {
+            const fallback = (transcriptEvidences || []).map(ev => escapeHtml(String(ev.quote || ev.context || '').trim().slice(0, 200))).filter(Boolean).join(' … ');
+            return '<div style="font-size:0.76rem;color:#64748b;">' + (fallback || '（无原文）') + '</div>';
+        }
+        const raw = fullTranscript;
+        let escaped = escapeHtml(raw);
+        const quotes = [];
+        (transcriptEvidences || []).forEach(ev => {
+            const q = String(ev.quote || ev.context || '').trim();
+            if (q && q.length >= 5) quotes.push(q);
+        });
+        const uniq = [...new Set(quotes)].sort((a, b) => b.length - a.length);
+        const tryHighlight = function (sub) {
+            if (!sub || sub.length < 8) return false;
+            const es = escapeHtml(sub);
+            const idx = escaped.indexOf(es);
+            if (idx === -1) return false;
+            const endIdx = idx + es.length;
+            escaped = escaped.slice(0, idx) + '<span class="source-highlight">' + es + '</span>' + escaped.slice(endIdx);
+            return true;
+        };
+        for (const q of uniq) {
+            const eq = escapeHtml(q);
+            let idx = escaped.indexOf(eq);
+            if (idx !== -1) {
+                const endIdx = idx + eq.length;
+                escaped = escaped.slice(0, idx) + '<span class="source-highlight">' + eq + '</span>' + escaped.slice(endIdx);
+                continue;
+            }
+            const prefixLengths = [80, 60, 45, 30, 20, 15];
+            let done = false;
+            for (const len of prefixLengths) {
+                if (q.length < len) continue;
+                if (tryHighlight(q.slice(0, len))) { done = true; break; }
+            }
+            if (done) continue;
+            if (q.length > 25 && tryHighlight(q.slice(-40))) continue;
+            const segments = q.split(/[，。；？！\n]+/).filter(s => s.trim().length >= 8);
+            for (const seg of segments) {
+                if (tryHighlight(seg.trim())) break;
+            }
+        }
+        return '<div class="transcript-original-block" style="font-size:0.76rem;color:#334155;line-height:1.7;white-space:pre-wrap;word-break:break-word;">' + escaped + '</div>';
+    }
+
+    function buildPaperTraceCard(ev, raw) {
+        const loc = escapeHtml(String(ev.location || '文献').trim());
+        const quote = escapeHtml(String(ev.quote || '').trim().slice(0, 280));
+        const sourceName = escapeHtml(String(ev.source_name || '').trim());
+        const sourceId = escapeHtml(String(ev.source_id || '').trim());
+        const page = escapeHtml(String(ev.page || '').trim());
+        const pageNumber = Number(ev.page || 0);
+        const rendered = ((raw && raw.papers_pages) || []).find(item => item && item.source_id === ev.source_id && (Number(item.source_page || item.page) === pageNumber || Number(item.page) === pageNumber));
+        const image = rendered && rendered.image ? rendered.image : '';
+        const open = sourceId
+            ? `<button type="button" data-source-id="${sourceId}" data-source-quote="${quote}" style="margin-top:0.45rem;font-size:0.7rem;color:#c2410c;background:transparent;border:0;padding:0;cursor:pointer;">打开完整文件预览 ↗</button>`
+            : '';
+        return `
+            <div style="border:1px solid #fed7aa;border-radius:0.65rem;padding:0.6rem;margin-bottom:0.65rem;background:#fff7ed;">
+                <div style="font-size:0.82rem;font-weight:600;color:#c2410c;margin-bottom:0.4rem;">${loc}</div>
+                ${sourceName ? `<div style="font-size:0.7rem;color:#9a3412;margin-bottom:0.35rem;">${sourceName}${page ? ` · 第${page}页` : ''}</div>` : ''}
+                ${image ? `<img src="${image}" alt="${sourceName || '文献'}第${page || ''}页" style="width:100%;border-radius:.45rem;border:1px solid #fed7aa;margin-bottom:.45rem;">` : ''}
+                <div style="font-size:0.76rem;color:#334155;line-height:1.5;">${quote || '（无引用片段）'}</div>
+                ${open}
+            </div>
+        `;
+    }
+
+    function openSourcePreview(sourceId, quote) {
+        const raw = (currentRecord && currentRecord.raw_sources) || {};
+        const source = (raw.source_documents || []).find(item => item && item.id === sourceId);
+        if (!source) {
+            showSourceFallback();
+            return;
+        }
+        const fullText = String(source.text || '（该文件暂无可预览的文字内容）');
+        const normalizedQuote = String(quote || '').replace(/<[^>]+>/g, '').trim();
+        let html = escapeHtml(fullText);
+        if (normalizedQuote && normalizedQuote.length >= 5) {
+            const escapedQuote = escapeHtml(normalizedQuote);
+            const position = html.indexOf(escapedQuote);
+            if (position >= 0) html = html.slice(0, position) + '<span class="source-highlight">' + escapedQuote + '</span>' + html.slice(position + escapedQuote.length);
+        }
+        previewTitle.textContent = source.name || '文件预览';
+        if (previewMeta) previewMeta.textContent = source.type === 'word' ? 'Word 文本预览' : `${String(source.type || '文件').toUpperCase()} 预览`;
+        previewContent.innerHTML = `<div style="width:100%;padding:0.85rem;box-sizing:border-box;"><div style="font-size:0.72rem;color:#64748b;margin-bottom:0.55rem;">已跳转到对应文件；命中的证据片段会高亮显示。</div><div style="white-space:pre-wrap;word-break:break-word;font-size:0.8rem;line-height:1.75;color:#334155;">${html}</div></div>`;
+        const hit = previewContent.querySelector('.source-highlight');
+        if (hit) hit.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+
+    function showSourceDisplay(item) {
+        if (!item || !currentRecord) {
+            showSourceFallback();
+            return;
+        }
+        const raw = currentRecord.raw_sources || {};
+        const evidence = (item.evidence && Array.isArray(item.evidence)) ? item.evidence : [];
+        const transcriptEvidences = evidence.filter(ev => ev && ev.type === 'transcript');
+        const pptPages = [];
+        const paperCards = [];
+        evidence.forEach(ev => {
+            if (!ev || !ev.type) return;
+            if (ev.type === 'ppt') {
+                const loc = String(ev.location || '');
+                const m = loc.match(/PPT\s*第\s*(\d+)\s*页/);
+                if (m) pptPages.push(parseInt(m[1], 10));
+            } else if (ev.type === 'paper' || ev.type === 'pdf' || ev.type === 'word') {
+                paperCards.push(buildPaperTraceCard(ev, raw));
+            }
+        });
+        if (!pptPages.length) {
+            const pages = extractPptPagesFromItem(item, raw);
+            pptPages.push(...pages);
+        }
+        const pptEvidenceForPage = page => evidence.find(ev => ev && ev.type === 'ppt' && (Number(ev.page || 0) === Number(page) || String(ev.location || '').includes(`第${page}页`))) || null;
+        const pptCards = pptPages.slice(0, 2).map(p => buildPptTraceCard(p, raw, pptEvidenceForPage(p))).join('');
+        const fullTranscript = (raw.transcript || raw.transcript_original || '').trim();
+        // 只在该条确实引用了转写稿时展示转写，避免它淹没 PPT/PDF/Word 的真实出处。
+        const hasTranscriptBlock = transcriptEvidences.length > 0;
+        const hasAny = hasTranscriptBlock || pptCards.length > 0 || paperCards.length > 0;
+        if (!hasAny) {
+            showSourceFallback();
+            return;
+        }
+        previewTitle.textContent = '素材溯源';
+        const parts = [];
+        if (transcriptEvidences.length || fullTranscript) parts.push('语音转录');
+        if (pptPages.length) parts.push('PPT ' + pptPages.slice(0, 2).map(p => '第' + p + '页').join('、'));
+        if (paperCards.length) parts.push('文献');
+        if (previewMeta) previewMeta.textContent = parts.join(' · ') || '出处';
+        previewContent.style.alignItems = 'flex-start';
+        previewContent.style.justifyContent = 'flex-start';
+        previewContent.style.background = '#ffffff';
+        previewContent.classList.add('preview-content-scroll');
+        const transcriptBlockHtml = hasTranscriptBlock
+            ? `<div style="margin-bottom:0.75rem;"><div style="font-size:0.82rem;font-weight:600;color:#047857;margin-bottom:0.4rem;">语音转录原文</div><div style="max-height:320px;overflow-y:auto;overflow-x:hidden;border:1px solid #d1fae5;border-radius:0.5rem;padding:0.6rem;background:#f0fdf4;">${buildFullTranscriptWithHighlights(fullTranscript, transcriptEvidences)}</div></div>`
+            : '';
+        previewContent.innerHTML = `
+            <div class="preview-content-inner" style="width:100%;padding:0.75rem;box-sizing:border-box;">
+                ${transcriptBlockHtml}
+                ${pptCards}
+                ${paperCards.join('')}
+            </div>
+        `;
+        previewContent.scrollTop = 0;
+        const firstHighlight = previewContent.querySelector('.source-highlight');
+        if (firstHighlight) {
+            firstHighlight.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+    }
+
+    window.showSource = function(section, index) {
+        if (!currentRecord) { alert('暂无可溯源的数据'); return; }
+        const list = currentRecord[section] || [];
+        const item = list[index];
+        showSourceDisplay(item);
+    };
+
+    window.showSourceByReporter = function(reporterIndex, section, itemIndex) {
+        if (!currentRecord || !currentRecord.by_reporter) { alert('暂无可溯源的数据'); return; }
+        const block = currentRecord.by_reporter[reporterIndex];
+        if (!block) return;
+        const list = block[section] || [];
+        const item = list[itemIndex];
+        showSourceDisplay(item);
+    };
+
+    previewContent.addEventListener('click', (event) => {
+        const deckButton = event.target.closest('[data-ppt-preview-all]');
+        if (deckButton) {
+            openPptDeckPreview(deckButton.dataset.pptPreviewAll, Number(deckButton.dataset.pptFocusPage || 0), deckButton.dataset.pptQuote || '');
+            return;
+        }
+        const button = event.target.closest('[data-source-id]');
+        if (!button) return;
+        openSourcePreview(button.dataset.sourceId, button.dataset.sourceQuote || '');
+    });
+
+    function openPptDeckPreview(sourceId, focusPage = 0, quote = '') {
+        const raw = (currentRecord && currentRecord.raw_sources) || {};
+        const slides = (raw.ppt_slides || []).filter(item => item && item.source_id === sourceId);
+        if (!slides.length || !pptPreviewModal || !pptPreviewAllSlides) { alert('该 PPT 暂无完整页预览。'); return; }
+        const name = slides[0].source_name || 'PPT';
+        if (pptPreviewModalTitle) pptPreviewModalTitle.textContent = `${name} · ${slides.length} 页`;
+        const normalise = value => String(value || '').replace(/\s+/g, '').slice(0, 100);
+        const targetQuote = normalise(quote);
+        pptPreviewAllSlides.innerHTML = slides.map(slide => {
+            const image = slide.images && slide.images[0] ? slide.images[0] : '';
+            const focused = Number(slide.page) === focusPage;
+            const matchedBox = (slide.text_boxes || []).find(box => {
+                const text = normalise(box.text);
+                return targetQuote && text && (text.includes(targetQuote.slice(0, 24)) || targetQuote.includes(text.slice(0, 24)));
+            });
+            const overlay = matchedBox && slide.slide_width && slide.slide_height ? `<div title="模型引用的文字区域" style="position:absolute;left:${(matchedBox.left / slide.slide_width) * 100}%;top:${(matchedBox.top / slide.slide_height) * 100}%;width:${(matchedBox.width / slide.slide_width) * 100}%;height:${(matchedBox.height / slide.slide_height) * 100}%;box-sizing:border-box;border:3px solid #f59e0b;background:rgba(250,204,21,.18);border-radius:3px;pointer-events:none;"></div>` : '';
+            return `<div data-ppt-slide-page="${slide.page}" style="padding:.45rem;border:2px solid ${focused ? '#2563eb' : '#e2e8f0'};border-radius:.6rem;background:#fff;"><div style="font-size:.72rem;color:#475569;margin-bottom:.3rem;font-weight:600;">第 ${slide.page} 页${focused ? ' · 当前溯源' : ''}${matchedBox ? ' · 已定位引用文字' : ''}</div><div style="position:relative;">${image ? `<a href="${image}" target="_blank" rel="noopener"><img src="${image}" alt="PPT第${slide.page}页" style="width:100%;display:block;border-radius:.3rem;"></a>` : '<div style="color:#94a3b8;font-size:.75rem;">该页预览尚未生成</div>'}${overlay}</div></div>`;
+        }).join('');
+        pptPreviewModal.classList.add('open');
+        const focusedSlide = pptPreviewAllSlides.querySelector(`[data-ppt-slide-page="${focusPage}"]`);
+        if (focusedSlide) setTimeout(() => focusedSlide.scrollIntoView({ block: 'center', behavior: 'smooth' }), 0);
+    }
+    if (closePptPreviewBtn) closePptPreviewBtn.addEventListener('click', () => pptPreviewModal.classList.remove('open'));
+
+    let activeTraceTarget = null;
+    let lastTraceKey = '';
+    function setActiveTraceTarget(el) {
+        if (activeTraceTarget && activeTraceTarget !== el) {
+            activeTraceTarget.classList.remove('trace-active');
+        }
+        activeTraceTarget = el || null;
+        if (activeTraceTarget) activeTraceTarget.classList.add('trace-active');
+    }
+    function triggerTraceFromElement(el) {
+        if (!el) return;
+        const traceType = el.getAttribute('data-trace-type');
+        const section = el.getAttribute('data-section');
+        const itemIndex = parseInt(el.getAttribute('data-item-index') || '-1', 10);
+        if (!section || itemIndex < 0) return;
+        const repIdx = parseInt(el.getAttribute('data-reporter-index') || '-1', 10);
+        const traceKey = `${traceType}|${repIdx}|${section}|${itemIndex}`;
+        if (traceKey === lastTraceKey) return;
+        lastTraceKey = traceKey;
+        if (traceType === 'by' && repIdx >= 0) {
+            window.showSourceByReporter(repIdx, section, itemIndex);
+        } else {
+            window.showSource(section, itemIndex);
+        }
+    }
+    function bindTraceHover() {
+        const container = getRecordBody() || paperContent;
+        if (!container || container.dataset.traceBound === '1') return;
+        container.dataset.traceBound = '1';
+        container.addEventListener('mouseover', function (e) {
+            const el = e.target.closest('.trace-target');
+            if (!el || !container.contains(el)) return;
+            setActiveTraceTarget(el);
+            triggerTraceFromElement(el);
+        });
+        container.addEventListener('click', function (e) {
+            const el = e.target.closest('.trace-target');
+            if (!el || !container.contains(el)) return;
+            setActiveTraceTarget(el);
+            triggerTraceFromElement(el);
+        });
+    }
+    window.showPreview = function(type, loc) {
+        let content = '';
+        let title = '';
+
+        if (type === 'ppt') {
+            title = `PPT Page ${loc}`;
+            content = `
+                <div style="width: 100%; height: 100%; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem;">
+                    <div style="font-size: 4rem; margin-bottom: 1rem;">📊</div>
+                    <div style="font-size: 0.875rem; color: #334155; font-weight: bold;">PPT 第 ${loc} 页预览</div>
+                </div>
+            `;
+        } else if (type === 'audio') {
+            title = `Audio Clip ${loc}`;
+            content = `
+                <div style="width: 100%; height: 100%; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem;">
+                    <div style="font-size: 4rem; margin-bottom: 1rem;">🎙️</div>
+                    <div style="font-size: 0.875rem; color: #334155; margin-top: 1rem;">正在播放: ${loc}</div>
+                </div>
+            `;
+        } else if (type === 'pdf') {
+            title = `Reference Page ${loc}`;
+            content = `
+                <div style="width: 100%; height: 100%; background: #fff; padding: 1.5rem;">
+                    <div style="font-size: 0.875rem; color: #334155;">文献第 ${loc} 页预览</div>
+                </div>
+            `;
+        }
+
+        previewTitle.textContent = title;
+        previewContent.innerHTML = content;
+    };
+</script>

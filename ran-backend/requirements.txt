@@ -1,0 +1,13 @@
+fastapi
+# 不使用 uvicorn[standard]：它会额外安装 watchfiles 的本地二进制组件。
+# 从压缩包/网盘迁移项目后 macOS 可能拦截该组件；本项目未使用热重载，基础版即可稳定运行。
+uvicorn
+python-multipart
+openai
+python-dotenv
+pypdf
+python-pptx
+python-docx
+sqlalchemy
+Pillow
+pymupdf
