@@ -12,9 +12,20 @@
   <img src="https://img.shields.io/badge/FastAPI-Backend-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/LLM-OpenAI--compatible-5B5BD6?style=flat-square" alt="OpenAI-compatible LLM" />
   <img src="https://img.shields.io/badge/License-MIT-1f2937?style=flat-square" alt="MIT License" />
+  <a href="https://ran-notes.onrender.com"><img src="https://img.shields.io/badge/在线演示-Render-46E3B7?style=flat-square&logo=render&logoColor=white" alt="在线演示" /></a>
 </div>
 
 ---
+
+## 在线体验
+
+访问 [研行记在线演示](https://ran-notes.onrender.com)，无需安装即可体验完整工作流：
+
+1. 点击"查看演示"，进入交互式 Demo 页面。
+2. 载入内置"猪周期"研究组会样例，体验材料载入、AI 生成与归档链路。
+3. 公共演示版使用服务端配置的模型额度；上传自己的数据时，请在 AI 设置中使用自己的 OpenAI 兼容服务 Key。
+
+> 免费实例在无活动时会休眠，首次访问可能需要等待 30-50 秒冷启动。
 
 ## Why RAN
 
