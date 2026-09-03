@@ -2,10 +2,10 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# 安装系统依赖（Pillow 需要 libjpeg）
+# 安装系统依赖（Pillow 需要 libjpeg 和 zlib）
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libjpeg-dev \
-    zlibc \
+    zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # 安装 Python 依赖
