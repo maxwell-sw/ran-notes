@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY ran-backend/ ./ran-backend/
 
 # 复制前端静态文件（保持目录名与本地一致）
-COPY "ran-page 3/" "./ran-page 3/"
+COPY ["ran-page 3/", "./ran-page 3/"]
 
 # 环境变量
 ENV PORT=8000
