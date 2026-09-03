@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi import UploadFile, File, Form
 from typing import List
 from pypdf import PdfReader
@@ -53,6 +54,15 @@ MODEL_NAME = os.getenv("OPENAI_MODEL", "gpt-4o")
 
 app = FastAPI()
 logger = logging.getLogger("ran_notes")
+
+# 静态前端文件目录：本地默认 "../ran-page 3"，Docker 中通过环境变量覆盖
+STATIC_DIR = Path(os.getenv("RAN_STATIC_DIR", "../ran-page 3")).resolve()
+if STATIC_DIR.exists():
+    app.mount("/app", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
+
+    @app.get("/")
+    def root_redirect():
+        return RedirectResponse(url="/app/index.html")
 
 LIBRARY_DB = Path(__file__).with_name("ran_notes_library.sqlite3")
 LIBRARY_FILES_ROOT = Path(__file__).with_name("ran_notes_assets")
@@ -1812,3 +1822,9 @@ async def process_meeting_stream(request: Request):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", "8003"))
+    uvicorn.run(app, host="0.0.0.0", port=port)
