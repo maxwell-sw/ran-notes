@@ -1382,8 +1382,10 @@
     if (meetingBasicInfoSlot && meetingBasicInfoPanel) meetingBasicInfoSlot.appendChild(meetingBasicInfoPanel);
     if (materialsPreparationSlot && materialsPreparationPanel) materialsPreparationSlot.appendChild(materialsPreparationPanel);
     // 部署到不同后端时可通过 ?api=http://host:port 临时指定；未指定时沿用本机默认端口。
+    // 在线部署（http/https）时自动使用当前域名，无需手动配置。
     const apiOverride = new URLSearchParams(window.location.search).get('api');
-    const API_BASE_URL = (apiOverride || window.localStorage.getItem('ranApiBaseUrl') || 'http://127.0.0.1:8003').replace(/\/$/, '');
+    const isOnline = window.location.protocol.startsWith('http');
+    const API_BASE_URL = (apiOverride || window.localStorage.getItem('ranApiBaseUrl') || (isOnline ? window.location.origin : 'http://127.0.0.1:8003')).replace(/\/$/, '');
     const loadTrialBtn = document.getElementById('loadTrialBtn');
     const trialStatus = document.getElementById('trialStatus');
     const assetDashboardBtn = document.getElementById('assetDashboardBtn');
